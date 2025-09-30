@@ -28,7 +28,7 @@ export function DashboardPage({ refreshTrigger, apiFetch, formatDate, showToast 
             ]);
             setStats(statsData);
             setAllJobs(jobsData);
-            setFilteredJobs(jobsData); // Initialize filtered list
+            setFilteredJobs(jobsData); 
             const colors = ['#3B82F6', '#F59E0B', '#10B981', '#8B5CF6', '#EF4444'];
             setChartData({
                 labels: distributionData.labels,
@@ -186,7 +186,12 @@ export function DashboardPage({ refreshTrigger, apiFetch, formatDate, showToast 
                                         <td className="text-center">{job.candidate_count}</td>
                                         <td className="text-center"><span className="status-pill status-active">Active</span></td>
                                         <td>{formatDate(job.created_at)}</td>
-                                        <td className="text-center"><button className="action-btn" onClick={(e) => openActionMenu(e, job.id)}>...</button></td>
+                                        {/* === THIS IS THE FIX === */}
+                                        <td className="text-center">
+                                            <button className="action-btn" onClick={(e) => openActionMenu(e, job.id)}>
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1"></circle><circle cx="12" cy="5" r="1"></circle><circle cx="12" cy="19" r="1"></circle></svg>
+                                            </button>
+                                        </td>
                                     </tr>
                                 )) : <tr><td colSpan="6" className="placeholder-row">No active jobs found.</td></tr>}
                             </tbody>

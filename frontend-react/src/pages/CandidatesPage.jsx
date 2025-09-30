@@ -9,14 +9,12 @@ export function CandidatesPage({ apiFetch, showToast, STATUS_OPTIONS, PIPELINE_S
     const [activeTab, setActiveTab] = useState('ATS Shortlisted');
     const [selectedIds, setSelectedIds] = useState(new Set());
     
-    // Modal states
     const [currentCandidate, setCurrentCandidate] = useState(null);
     const [isUpdateModalOpen, setUpdateModalOpen] = useState(false);
     const [isViewProfileModalOpen, setViewProfileModalOpen] = useState(false);
     const [isContactModalOpen, setContactModalOpen] = useState(false);
     const [actionMenu, setActionMenu] = useState({ visible: false, x: 0, y: 0, candidate: null });
     
-    // Upload progress bar state
     const [isUploading, setIsUploading] = useState(false);
 
     const selectAllCheckboxRef = useRef();
@@ -26,7 +24,6 @@ export function CandidatesPage({ apiFetch, showToast, STATUS_OPTIONS, PIPELINE_S
         if (!filters.status) params.set('status', activeTab);
         
         try {
-            // No changes here
             const [candidateData, countData, jobsData] = await Promise.all([
                 apiFetch(`/api/candidates?${params.toString()}`),
                 apiFetch('/api/candidates/counts'),
@@ -119,20 +116,14 @@ export function CandidatesPage({ apiFetch, showToast, STATUS_OPTIONS, PIPELINE_S
         setActionMenu({ visible: true, x: rect.right, y: rect.bottom + window.scrollY, candidate: candidate });
     };
 
-    // =================================================================
-    // === THIS IS THE CRITICAL FIX ====================================
-    // =================================================================
     const handleActionClick = async (action) => {
         const { candidate } = actionMenu;
-        setActionMenu({ visible: false }); // Close menu immediately
+        setActionMenu({ visible: false }); 
 
         if (action === 'view-profile') {
             try {
-                // 1. Fetch the FULL candidate details, including ai_analysis
                 const fullCandidateData = await apiFetch(`/api/candidates/${candidate.id}`);
-                // 2. Set this full data as the current candidate
                 setCurrentCandidate(fullCandidateData);
-                // 3. THEN open the modal
                 setViewProfileModalOpen(true);
             } catch (error) {
                 showToast('Could not load candidate profile.', 'error');
@@ -140,7 +131,6 @@ export function CandidatesPage({ apiFetch, showToast, STATUS_OPTIONS, PIPELINE_S
             return;
         }
 
-        // For other actions, we don't need to fetch full data first
         setCurrentCandidate(candidate);
         if (action === 'update-status') setUpdateModalOpen(true);
         if (action === 'contact') setContactModalOpen(true);
@@ -226,7 +216,12 @@ export function CandidatesPage({ apiFetch, showToast, STATUS_OPTIONS, PIPELINE_S
                                     <td className="text-center"><div className="ats-score-cell" style={{justifyContent: 'center'}}><div className="ats-progress"><div className="ats-progress-bar" style={{width: `${c.ats_score || 0}%`}}></div></div><span className="ats-score-value">{c.ats_score ? `${Math.round(c.ats_score)}%` : 'N/A'}</span></div></td>
                                     <td>{c.phone_number?.replace('whatsapp:', '') || 'N/A'}</td>
                                     <td className="text-center"><span className={`status-pill status-${getStatusPillClass(c.status)}`}>{c.status}</span></td>
-                                    <td className="text-center"><button className="action-btn" onClick={(e) => openActionMenu(e, c)}>...</button></td>
+                                    {/* === THIS IS THE FIX === */}
+                                    <td className="text-center">
+                                        <button className="action-btn" onClick={(e) => openActionMenu(e, c)}>
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1"></circle><circle cx="12" cy="5" r="1"></circle><circle cx="12" cy="19" r="1"></circle></svg>
+                                        </button>
+                                    </td>
                                 </tr>
                                 );
                             })}
