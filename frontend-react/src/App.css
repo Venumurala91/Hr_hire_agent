@@ -246,39 +246,61 @@ body {
     line-height: 1;
 }
 
+
+/* The main container for the dashboard page */
+#dashboard-view {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1; /* Make it fill the available space in main-content */
+    min-height: 0; /* Important for flexbox children to behave correctly */
+}
+
+/* The top row of KPI cards */
+.kpi-cards { 
+    display: grid; 
+    grid-template-columns: repeat(4, 1fr); 
+    gap: 24px; 
+    margin-bottom: 24px; 
+    flex-shrink: 0; /* Prevent this from shrinking */
+}
+
+/* The container for the two main cards (jobs list and chart) */
 .dashboard-grid {
     display: grid;
     grid-template-columns: 2fr 1fr;
     gap: 24px;
-    flex-grow: 1;
+    flex-grow: 1; /* Allow the grid to take up all remaining vertical space */
+    min-height: 0; /* CRITICAL: Prevents the grid from overflowing its container */
 }
 
-/* ========================================================================= */
-/* === THIS SECTION IS THE COMPLETE FIX FOR THE SCROLLING ISSUE ============ */
-/* ========================================================================= */
-
-.jobs-list-section  {
+/* The card that contains the job list */
+.jobs-list-section {
     padding: 0;
     display: flex;
     flex-direction: column;
-    /* This is the key: it prevents the card from growing taller than its grid area */
-    overflow: hidden; 
+    overflow: hidden; /* CRITICAL: This clips any content that tries to escape the card's bounds */
 } 
 .jobs-list-header {
     padding: 20px 24px;
     margin-bottom: 0;
     border-bottom: 1px solid var(--border-color);
+    flex-shrink: 0; 
 }
 .job-actions-bar {
     display: flex;
     align-items: center;
     gap: 12px;
 }
+/* The container for the table itself */
 .jobs-table-container {
-    flex-grow: 1;       /* This makes the container try to fill all available vertical space inside the card */
-    overflow-y: auto;   /* THIS ADDS THE VERTICAL SCROLLBAR when the table content is too tall */
-    position: relative; /* Needed to make the sticky header work */
+    flex-grow: 1; /* Allows this to fill the remaining space inside the card */
+    overflow-y: auto; /* Adds the scrollbar when content is taller than the container */
+    position: relative;
 }
+/* ================================================================= */
+/* === END OF FIX ==================================================== */
+/* ================================================================= */
+
 #jobsTable {
     width: 100%;
     border-collapse: collapse;
@@ -300,16 +322,14 @@ body {
 }
 #jobsTable th {
     background-color: var(--card-bg);
-    position: sticky; /* This makes the table header stay visible while you scroll the jobs list */
-    top: 0;
-    z-index: 10;
-    
     font-weight: 500;
     font-size: 12px;
     color: var(--text-secondary);
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    
+    position: sticky;
+    top: 0;
+    z-index: 10;
 }
 #jobsTable tr:last-child td {
     border-bottom: none;
