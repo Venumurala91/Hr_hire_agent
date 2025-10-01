@@ -1,28 +1,70 @@
-# =============================================================================
-# HR-HIRE-AGENT/README.md
-# =============================================================================
-# HR-HIRE-AGENT
+Of course. Your existing README is good, but it's now outdated because of the major frontend upgrade to React.
 
-This project implements an end-to-end HR Hire Workflow using Python Flask, MySQL, and SQLAlchemy, enhanced with an ATS scoring system powered by Google Gemini and WhatsApp notifications for candidates.
+A great README for this project needs to clearly explain the modern, decoupled architecture and provide separate, easy-to-follow instructions for setting up both the backend and the frontend.
 
-## Features
+Here is a completely rewritten, professional `README.md` file that reflects your current project structure. It's designed to be clear and comprehensive for any new developer visiting your repository.
 
-*   **Candidate ATS Scoring:** Leverage Google Gemini for intelligent resume screening and scoring against job descriptions.
-*   **Multi-Stage Interview Process:** Manage candidates through various interview rounds.
-*   **HR Discussion & Verification:** Support for HR-specific steps in the hiring pipeline.
-*   **Offer Management:** Handle offer decisions (Accept/Reject/Hold).
-*   **Automated WhatsApp Notifications:** Keep candidates informed at key stages of the process.
-*   **Detailed Status Tracking:** Continuous tracking and updates of candidate status.
+---
 
-## Technologies Used
+# HR Hire Agent
 
-*   **Backend:** Python 3, Flask
-*   **Database:** MySQL (via SQLAlchemy ORM)
+An intelligent, end-to-end hiring platform designed to streamline the recruitment process. This application leverages AI for automated resume screening and provides a modern, interactive user interface for HR professionals to manage the entire hiring pipeline.
+
+The system is built with a modern decoupled architecture, featuring a powerful **Python (Flask) backend API** and a dynamic **React single-page application (SPA)** frontend.
+
+## 📸 Screenshots
+
+*(It is highly recommended to replace these placeholders with actual screenshots of your application)*
+
+| Dashboard View | Candidates View |
+| :---: | :---: |
+| *(Your Dashboard Screenshot Here)* | *(Your Candidates Screenshot Here)* |
+
+| Messages View | Candidate Profile Modal |
+| :---: | :---: |
+| *(Your Messages Screenshot Here)* | *(Your Profile Modal Screenshot Here)* |
+
+## ✨ Core Features
+
+*   **AI-Powered Resume Screening:** Utilizes Google Gemini to intelligently score resumes against job descriptions, automatically shortlisting or declining candidates.
+*   **Modern & Responsive UI:** A fast, user-friendly single-page application built with React for a seamless experience.
+*   **Interactive Dashboard:** At-a-glance view of key hiring metrics, active jobs, and candidate pipeline distribution with dynamic charts.
+*   **Full Candidate Lifecycle Management:** Track candidates from initial application through multiple interview stages, offers, and onboarding.
+*   **Bulk Actions:** Efficiently upload resumes in bulk, and manage multiple candidates or jobs at once.
+*   **Multi-Channel Communication:** Send targeted bulk messages to candidates via Email or WhatsApp using customizable templates.
+*   **Detailed Status History:** Maintains an auditable log of every status change for each candidate.
+
+## 💻 Technology Stack
+
+#### Backend
+*   **Framework:** Python 3, Flask
+*   **Database:** MySQL
+*   **ORM:** SQLAlchemy
 *   **AI/LLM:** Google Gemini
-*   **Messaging:** Twilio (for WhatsApp SMS)
-*   **Configuration:** YAML
+*   **Messaging:** Twilio API for WhatsApp
+*   **Configuration:** YAML, python-dotenv
 
-## Setup Instructions
+#### Frontend
+*   **Library:** React
+*   **Build Tool:** Vite
+*   **Language:** JavaScript (ES6+)
+*   **Charting:** Chart.js
+*   **Styling:** Plain CSS3 with Custom Properties
+
+## 🚀 Getting Started
+
+Follow these instructions to get the project up and running on your local machine for development and testing.
+
+### Prerequisites
+
+You will need the following software installed on your system:
+*   Python (3.8 or newer)
+*   Node.js (v16 or newer) and npm
+*   A running MySQL server
+
+### 1. Backend Setup
+
+First, let's set up and run the Python Flask server.
 
 1.  **Clone the Repository:**
     ```bash
@@ -30,84 +72,96 @@ This project implements an end-to-end HR Hire Workflow using Python Flask, MySQL
     cd HR-HIRE-AGENT
     ```
 
-2.  **Create a Virtual Environment:**
+2.  **Create and Activate a Python Virtual Environment:**
     ```bash
-    python3 -m venv venv
-    source venv/bin/activate  # On Windows: venv\Scripts\activate
+    python3 -m venv env
+    source env/bin/activate  # On Windows: env\Scripts\activate
     ```
 
-3.  **Install Dependencies:**
+3.  **Install Python Dependencies:**
     ```bash
     pip install -r requirements.txt
     ```
 
-4.  **Configure Environment Variables & `config.yaml`:**
-    *   Create a `.env` file in the root directory and add your sensitive credentials:
-        ```
-        GEMINI_API_KEY="YOUR_GOOGLE_GEMINI_API_KEY"
-        TWILIO_ACCOUNT_SID="YOUR_TWILIO_ACCOUNT_SID"
-        TWILIO_AUTH_TOKEN="YOUR_TWILIO_AUTH_TOKEN"
-        TWILIO_WHATSAPP_NUMBER="whatsapp:+14155238886" # Your Twilio Sandbox or approved number
-        DATABASE_URL="mysql+pymysql://user:password@host:port/database_name"
-        # For local development: DATABASE_URL="mysql+pymysql://root:password@localhost:3306/hr_hire_db"
-        FLASK_APP=api/main.py
-        FLASK_ENV=development
-        ```
-    *   Update `config/config.yaml` with non-sensitive configurations or ensure it points to environment variables where appropriate. A template is provided in `config/config.yaml`.
+4.  **Configure Environment Variables:**
+    Create a file named `.env` in the project's root directory. Copy the contents of `.env.example` (if provided) or use the template below and fill in your actual credentials.
 
-5.  **Database Setup:**
-    *   Ensure your MySQL server is running.
-    *   Create the database specified in `DATABASE_URL` (e.g., `CREATE DATABASE hr_hire_db;`).
-    *   The application will automatically create tables based on `model/models.py` when it first runs or on a migration command (we'll implement basic table creation for now).
+    ```env
+    # Flask Settings
+    FLASK_APP=api/main.py
+    FLASK_ENV=development
+    APP_SECRET_KEY="a_strong_random_secret_key"
 
-6.  **Run the Application:**
-    ```bash
-    flask run
+    # Database URL (ensure your MySQL user, password, and DB name are correct)
+    DATABASE_URL="mysql+pymysql://root:your_password@localhost:3306/hr_agent_db"
+
+    # Google Gemini API Key
+    GEMINI_API_KEY="YOUR_GOOGLE_GEMINI_API_KEY"
+
+    # Twilio Credentials for WhatsApp
+    TWILIO_ACCOUNT_SID="YOUR_TWILIO_ACCOUNT_SID"
+    TWILIO_AUTH_TOKEN="YOUR_TWILIO_AUTH_TOKEN"
+    TWILIO_WHATSAPP_NUMBER="whatsapp:+14155238886" # Your Twilio number
     ```
-    The API will typically run on `http://127.0.0.1:5000`.
 
-## API Endpoints (Examples)
+5.  **Set Up the Database:**
+    *   Log in to your MySQL server.
+    *   Create the database you specified in `DATABASE_URL`.
+        ```sql
+        CREATE DATABASE hr_agent_db;
+        ```
+    *   The Flask application will automatically create the necessary tables on its first run.
 
-*   `POST /candidates`: Upload resume and JD, trigger ATS scoring.
-*   `GET /candidates/<id>`: Get candidate details.
-*   `POST /candidates/<id>/interview/1`: Record 1st round interview details.
-*   `POST /candidates/<id>/offer`: Make an offer decision.
-*   ...and more, following the HR Hire Workflow.
+### 2. Frontend Setup
+
+Next, let's set up the React development server in a **new terminal window**.
+
+1.  **Navigate to the Frontend Directory:**
+    ```bash
+    cd frontend-react
+    ```
+
+2.  **Install Node.js Dependencies:**
+    ```bash
+    npm install
+    ```
+
+## 🏃‍♂️ Running the Application
+
+To run the application, you need to have **two terminals** open simultaneously: one for the backend and one for the frontend.
+
+**➡️ In Terminal 1 (Backend):**
+Make sure you are in the project's root directory (`HR-HIRE-AGENT/`) and your Python virtual environment is active.
+
+```bash
+flask run
+```
+This will start the Flask API server, typically on `http://127.0.0.1:5000`.
+
+**➡️ In Terminal 2 (Frontend):**
+Make sure you are in the `frontend-react/` directory.
+
+```bash
+npm run dev
+```
+This will start the Vite development server, typically on `http://localhost:5173`.
+
+**You're all set! Open your web browser and navigate to the frontend URL (e.g., `http://localhost:5173`) to use the application.** The React app is configured to automatically proxy API requests to your running Flask backend.
 
 ---
 
-
-Okay, here's the application flow in short, concise lines, incorporating all the recent changes:
-
----
-
-### **HR Hire Agent Application Flow (Simplified)**
+### Application Flow (Simplified)
 
 1.  **HR Defines Job:** HR creates a `Job Description (JD)` in the app.
-2.  **Candidates Apply (Bulk or Single):**
-    *   HR uploads multiple resume files (`/candidates/bulk`) OR a single resume (`/candidates`).
+2.  **Candidates Apply (Bulk Upload):** HR uploads multiple resume files for a specific job.
 3.  **Resume Processing & AI Scoring:**
-    *   For each resume:
-        *   `pyresparser` extracts key facts (skills, experience).
-        *   `Google Gemini (AI)` uses these facts + raw resume text + JD to calculate an `ATS Score` (e.g., 85/100).
-        *   **Crucial:** All these steps happen **in parallel** for bulk uploads, making it fast.
+    *   For each resume, `Google Gemini (AI)` calculates an `ATS Score` against the JD.
+    *   This processing happens in parallel for speed.
 4.  **Shortlisting Decision:**
-    *   The `ATS Score` is compared to a **pre-set `ATS Threshold`** (e.g., 70%).
-    *   If score >= threshold, candidate is `Shortlisted`.
-    *   If score < threshold, candidate is `Discarded`.
-5.  **WhatsApp Notifications (for ALL):**
-    *   **Every candidate** gets a WhatsApp SMS:
-        *   Shortlisted candidates get a "Congratulations! You're in!" message with their score.
-        *   Discarded candidates get a "Thanks, but not this time" message with their score.
-    *   These messages are sent **in parallel**.
-6.  **Database Storage (Only Shortlisted):**
-    *   **Only `Shortlisted` candidates** and their initial `Status History` are saved to the MySQL database.
-    *   This saving happens in **one big batch** for efficiency.
-7.  **Ongoing Workflow & Status Tracking:**
-    *   HR uses the app to manage `Interviews` (L1, L2), `HR Discussions`, `Verifications` (BGV), and `Offer Decisions` (Accept/Reject/Hold).
-    *   **Every single step** automatically updates the candidate's `Current Status` and creates a detailed `Status History` entry in the database.
-8.  **Final Steps:** `Onboarding` and `Joining` finalize the process, with automatic status updates and WhatsApp messages.
-
----
-
-**In essence:** HR defines the job, candidates apply. The system intelligently screens resumes fast using AI and parallel processing, communicates with ALL candidates via WhatsApp, and meticulously tracks the full journey of ONLY the shortlisted candidates, logging every step.
+    *   If a candidate's score is above a pre-set threshold, they are marked `ATS Shortlisted`.
+    *   Otherwise, they are marked `Resume declined`.
+5.  **Database Storage:** Shortlisted candidates and their details are saved to the MySQL database.
+6.  **Ongoing Workflow:**
+    *   HR uses the app to manage `Interviews`, `Offers`, and other stages.
+    *   Every status change is logged in the `Status History`.
+7.  **Communication:** HR can send bulk emails or WhatsApp messages to candidates at any stage.
