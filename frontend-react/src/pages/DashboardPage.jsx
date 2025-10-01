@@ -106,13 +106,22 @@ export function DashboardPage({ refreshTrigger, apiFetch, formatDate, showToast 
         setActionMenu({ visible: true, x: rect.right, y: rect.bottom + window.scrollY, jobId });
     };
 
+    // =================================================================
+    // === THIS IS THE CRITICAL FIX ====================================
+    // =================================================================
     const handleJobAction = async (action) => {
         const { jobId } = actionMenu;
         setActionMenu({ visible: false });
 
         if (action === 'view') {
-            const jobToView = allJobs.find(j => j.id === jobId);
-            setViewJobModal({ isOpen: true, job: jobToView, isEditing: false });
+            try {
+                // 1. Fetch the FULL job details, including the description
+                const fullJobData = await apiFetch(`/api/jobs/${jobId}`);
+                // 2. Set this full data and open the modal
+                setViewJobModal({ isOpen: true, job: fullJobData, isEditing: false });
+            } catch (error) {
+                showToast("Could not load job details.", "error");
+            }
         } else if (action === 'delete') {
             if (window.confirm('Are you sure you want to delete this job?')) {
                 try {
@@ -186,7 +195,6 @@ export function DashboardPage({ refreshTrigger, apiFetch, formatDate, showToast 
                                         <td className="text-center">{job.candidate_count}</td>
                                         <td className="text-center"><span className="status-pill status-active">Active</span></td>
                                         <td>{formatDate(job.created_at)}</td>
-                                        {/* === THIS IS THE FIX === */}
                                         <td className="text-center">
                                             <button className="action-btn" onClick={(e) => openActionMenu(e, job.id)}>
                                                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1"></circle><circle cx="12" cy="5" r="1"></circle><circle cx="12" cy="19" r="1"></circle></svg>
