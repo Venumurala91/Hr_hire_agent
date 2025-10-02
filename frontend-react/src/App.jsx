@@ -56,7 +56,16 @@ const apiFetch = async (endpoint, options = {}) => {
 const formatDate = (dateString) => new Date(dateString).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
 const PIPELINE_STAGES = ["ATS Shortlisted", "L1 interview scheduled", "L2 interview scheduled", "HR scheduled", "Offer Letter Issued", "Candidate Joined", "Resume declined"];
-const STATUS_OPTIONS = [ "ATS Shortlisted", "L1 interview scheduled", "L1 Selected", "L1 Rejected", "L2 interview scheduled", "L2 Selected", "L2 Rejected", "HR scheduled", "HR Round Selected", "HR Round Rejected", "Offer Letter Issued", "Offer Accepted", "Offer Rejected", "Candidate Joined", "Candidate Not Joined", "Resume declined" ];
+const STATUS_OPTIONS = [
+    "ATS Shortlisted", "L1 interview scheduled", "L1 Selected", "L1 Rejected",
+    "L2 interview scheduled", "L2 Selected", "L2 Rejected", "HR scheduled",
+    "HR Round Selected", "HR Round Rejected", 
+    // New statuses added here
+    "Document Verification Pending", "Documents Cleared", "Documents Rejected",
+    "Offer Letter Issued", "Offer Accepted",
+    "Offer Rejected", "Candidate Joined", "Candidate Not Joined", "Resume declined"
+];
+
 const MESSAGE_TEMPLATES = {
     "ATS Shortlisted": { subject: "Update on your application for {job_title}", body: "Hi {candidate_name},\n\nGreat news! Your application for the {job_title} position has been shortlisted. Our HR team is reviewing it and will be in touch shortly to schedule the next round of interviews if your profile is a match.\n\nBest regards,\nThe Hiring Team" },
     "L1 interview scheduled": { subject: "Invitation to Interview for the {job_title} role", body: "Hi {candidate_name},\n\nCongratulations! We would like to invite you for the first technical interview (L1) for the {job_title} position.\n\nOur HR team will contact you shortly via a separate email to coordinate a suitable time. We look forward to speaking with you.\n\nBest regards,\nThe Hiring Team" },
@@ -65,6 +74,29 @@ const MESSAGE_TEMPLATES = {
     "Offer Letter Issued": { subject: "Job Offer for the {job_title} Position!", body: "Hi {candidate_name},\n\nCongratulations! We are thrilled to formally offer you the position of {job_title}. An official offer letter has been sent to your email with all the details.\n\nWe look forward to you joining us!\n\nBest regards,\nThe Hiring Team" },
 };
 
+
+// === ADD THESE NEW CONSTANTS RIGHT HERE ==================================
+// =========================================================================
+const STAGE_GROUPS = {
+  SCREENING: ["ATS Shortlisted", "Resume declined"],
+  L1_INTERVIEW: ["L1 interview scheduled", "L1 Selected", "L1 Rejected"],
+  L2_INTERVIEW: ["L2 interview scheduled", "L2 Selected", "L2 Rejected"],
+  HR_ROUND: ["HR scheduled", "HR Round Selected", "HR Round Rejected"],
+  DOCUMENT_VERIFICATION: ["Document Verification Pending", "Documents Cleared", "Documents Rejected"],
+  // New statuses added to the OFFER group
+  OFFER: ["Document Verification Pending", "Documents Cleared", "Documents Rejected", "Offer Letter Issued", "Offer Accepted", "Offer Rejected", "Candidate Not Joined"],
+  JOINED: ["Candidate Joined"],
+};
+
+const STAGE_PASS_STATUS = {
+  SCREENING: "ATS Shortlisted",
+  L1_INTERVIEW: "L1 Selected",
+  L2_INTERVIEW: "L2 Selected",
+  HR_ROUND: "HR Round Selected",
+  DOCUMENT_VERIFICATION: "Documents Cleared",
+  OFFER: "Offer Accepted",
+  JOINED: "Candidate Joined", // Added for completeness
+};
 // =============================================================================
 // === Main App Component (The Conductor) ======================================
 // =============================================================================
@@ -213,5 +245,7 @@ function App() {
     </div>
   );
 }
+
+
 
 export default App;

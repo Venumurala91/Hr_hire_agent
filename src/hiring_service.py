@@ -1,5 +1,8 @@
-from sqlalchemy.orm import Session, aliased
+from sqlalchemy.orm import Session, aliased, joinedload
 from sqlalchemy import func, or_
+import shutil # <-- Import shutil for file operations
+import uuid   # <-- Import uuid for unique filenames
+
 from model.models import Candidate, JobDescription, StatusHistory
 from model.status_constants import StatusConstants
 from src.ats_service import ATSService
@@ -58,7 +61,8 @@ class HiringService:
         return query.order_by(JobDescription.created_at.desc()).all()
 
     def get_candidate(self, candidate_id: int) -> Candidate:
-        candidate = self.db.query(Candidate).filter(Candidate.id == candidate_id).first()
+        # Eagerly load the status history for the timeline feature
+        candidate = self.db.query(Candidate).options(joinedload(Candidate.status_history)).filter(Candidate.id == candidate_id).first()
         if not candidate: raise NotFoundError(f"Candidate with ID {candidate_id} not found.")
         return candidate
         
@@ -70,10 +74,15 @@ class HiringService:
             name = ats_result.get('candidate_name', '').strip() or structured_data.get('name', '').strip()
             email = ats_result.get('email', '').strip() or structured_data.get('email', '').strip()
             phone = ats_result.get('phone_number', '').strip() or structured_data.get('mobile_number', '')
-            parts = name.split() if name else []; first, last = (parts[0], ' '.join(parts[1:])) if parts else ("C", f"({os.path.basename(file_path)})")
-            return {"first_name": first, "last_name": last, "email": email, "phone_number": phone, "ats_score": ats_result.get("overall_ats_score", 0.0), "full_analysis": ats_result, "error": None}
+            parts = name.split() if name else []; first, last = (parts[0], ' '.join(parts[1:])) if parts else ("Candidate", f"({os.path.basename(file_path)})")
+            return {
+                "first_name": first, "last_name": last, "email": email, "phone_number": phone, 
+                "ats_score": ats_result.get("overall_ats_score", 0.0), 
+                "full_analysis": ats_result, "error": None,
+                "original_path": file_path
+            }
         except Exception as e:
-            return {"file_name": os.path.basename(file_path), "error": str(e)}
+            return {"file_name": os.path.basename(file_path), "error": str(e), "original_path": file_path}
 
     def bulk_process_and_shortlist_resumes(self, resume_file_paths: list[str], jd_id: int, ats_threshold: float, changed_by: str) -> dict:
         jd = self.get_job_description(jd_id)
@@ -89,29 +98,77 @@ class HiringService:
                     self._create_candidate_from_processed_data(data, jd, changed_by, is_shortlisted)
                     summary["shortlisted" if is_shortlisted else "rejected"] += 1
                 except Exception as e:
+                    logger.error(f"Error creating candidate from processed data: {e}", exc_info=True)
                     summary["failed"] += 1
         self.db.commit(); return summary
 
     def _create_candidate_from_processed_data(self, data: dict, jd: JobDescription, changed_by: str, is_shortlisted: bool):
         sanitized_filename = re.sub(r'[^\w.-]', '_', os.path.splitext(data.get('file_name', ''))[0])
-        email = data.get('email') or f"{sanitized_filename}@placeholder.email"
-        if self.db.query(Candidate).filter(func.lower(Candidate.email) == email.lower(), Candidate.job_description_id == jd.id).first(): return
+        email = data.get('email') or f"{sanitized_filename}_{uuid.uuid4().hex[:6]}@placeholder.email"
         
-        status = StatusConstants.ATS_SHORTLISTED_DESCR if is_shortlisted else StatusConstants.ATS_DISCARDED_DESCR
-        new_candidate = Candidate(first_name=data['first_name'], last_name=data['last_name'], email=email, phone_number=self._format_whatsapp_phone_number(data.get('phone_number')), job_description_id=jd.id, current_status=status, ats_score=data['ats_score'], ai_analysis=json.dumps(data.get('full_analysis', {})))
-        self.db.add(new_candidate); self.db.flush()
-        self._record_status_change(new_candidate.id, status, f"ATS Score: {new_candidate.ats_score}", changed_by)
-        if is_shortlisted: self.notification_service.notify_new_candidate_shortlisted(new_candidate, jd)
+        if self.db.query(Candidate).filter(func.lower(Candidate.email) == email.lower(), Candidate.job_description_id == jd.id).first():
+            logger.warning(f"Duplicate candidate skipped: {email} for job {jd.id}")
+            return
 
-    def get_candidates(self, status: str = None, job_id: int = None, search_query: str = None) -> list[Candidate]:
+        permanent_resume_path = None
+        temp_path = data.get('original_path')
+
+        if temp_path and os.path.exists(temp_path):
+            try:
+                _, file_extension = os.path.splitext(temp_path)
+                unique_filename = f"{uuid.uuid4().hex}{file_extension}"
+                destination_path = os.path.join(config.RESUME_UPLOAD_FOLDER, unique_filename)
+                
+                shutil.copy(temp_path, destination_path)
+                
+                permanent_resume_path = os.path.join(config.RESUME_UPLOAD_FOLDER, unique_filename).replace('\\', '/')
+                logger.info(f"Copied resume from {temp_path} to {destination_path}")
+            except Exception as e:
+                logger.error(f"Failed to copy resume file {temp_path}: {e}")
+
+        status = StatusConstants.ATS_SHORTLISTED_DESCR if is_shortlisted else StatusConstants.ATS_DISCARDED_DESCR
+        new_candidate = Candidate(
+            first_name=data['first_name'], 
+            last_name=data['last_name'], 
+            email=email, 
+            phone_number=self._format_whatsapp_phone_number(data.get('phone_number')), 
+            job_description_id=jd.id, 
+            current_status=status, 
+            ats_score=data['ats_score'], 
+            ai_analysis=json.dumps(data.get('full_analysis', {})),
+            resume_path=permanent_resume_path
+        )
+        self.db.add(new_candidate)
+        self.db.flush()
+        self._record_status_change(new_candidate.id, status, f"ATS Score: {new_candidate.ats_score}", changed_by)
+        
+        if is_shortlisted:
+            self.notification_service.notify_new_candidate_shortlisted(new_candidate, jd)
+
+    def get_candidates(self, status: str = None, job_id: int = None, search_query: str = None, paginated: bool = False):
         q = self.db.query(Candidate)
-        if status: q = q.filter(Candidate.current_status == status)
-        if job_id: q = q.filter(Candidate.job_description_id == job_id)
+        if status:
+            q = q.filter(Candidate.current_status == status)
+        if job_id:
+            q = q.filter(Candidate.job_description_id == job_id)
         if search_query:
             term = f"%{search_query.lower()}%"
             jd_alias = aliased(JobDescription)
-            q = q.join(jd_alias, Candidate.job_description_id == jd_alias.id).filter(or_(func.lower(Candidate.first_name).like(term), func.lower(Candidate.last_name).like(term), func.lower(Candidate.email).like(term), func.lower(jd_alias.title).like(term)))
-        return q.order_by(Candidate.updated_at.desc()).all()
+            q = q.join(jd_alias, Candidate.job_description_id == jd_alias.id).filter(
+                or_(
+                    func.lower(Candidate.first_name).like(term),
+                    func.lower(Candidate.last_name).like(term),
+                    func.lower(Candidate.email).like(term),
+                    func.lower(jd_alias.title).like(term)
+                )
+            )
+        
+        if paginated:
+            total_count = q.count()
+            ordered_query = q.order_by(Candidate.updated_at.desc())
+            return ordered_query, total_count
+        else:
+            return q.order_by(Candidate.updated_at.desc()).all()
 
     def bulk_delete_candidates(self, c_ids: list[int]):
         if not c_ids: return
@@ -124,7 +181,12 @@ class HiringService:
     def bulk_delete_jobs(self, j_ids: list[int]):
         if not j_ids: return
         try:
-            self.db.query(Candidate).filter(Candidate.job_description_id.in_(j_ids)).update({"job_description_id": None}, synchronize_session=False)
+            candidates_to_update = self.db.query(Candidate).filter(Candidate.job_description_id.in_(j_ids)).all()
+            candidate_ids_to_update = [c.id for c in candidates_to_update]
+            if candidate_ids_to_update:
+                self.db.query(StatusHistory).filter(StatusHistory.candidate_id.in_(candidate_ids_to_update)).delete(synchronize_session=False)
+            
+            self.db.query(Candidate).filter(Candidate.id.in_(candidate_ids_to_update)).delete(synchronize_session=False)
             self.db.query(JobDescription).filter(JobDescription.id.in_(j_ids)).delete(synchronize_session=False)
             self.db.commit()
         except Exception as e: self.db.rollback(); raise DatabaseError(f"Failed to bulk delete jobs: {e}")
@@ -139,7 +201,6 @@ class HiringService:
         except Exception as e: logger.error(f"Failed to send email for status update to {c_id}: {e}")
         return candidate
 
-    # NEW: Generic bulk notification method
     def send_bulk_notification(self, candidate_ids: list[int], channel: str, subject: str, message: str, changed_by: str) -> dict:
         summary = {"success": 0, "failed": 0}
         candidates = self.db.query(Candidate).filter(Candidate.id.in_(candidate_ids)).all()

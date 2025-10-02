@@ -57,6 +57,14 @@ class StatusConstants:
     HR_ROUND_REJECTED_CODE = 135
     HR_ROUND_REJECTED_DESCR = "HR Round Rejected"
 
+    # --- NEW: Document Verification Stage ---
+    DOC_VERIFICATION_PENDING_CODE = 142
+    DOC_VERIFICATION_PENDING_DESCR = "Document Verification Pending"
+    DOCS_CLEARED_CODE = 144
+    DOCS_CLEARED_DESCR = "Documents Cleared"
+    DOCS_REJECTED_CODE = 146 
+    DOCS_REJECTED_DESCR = "Documents Rejected"
+    # ------------------------------------
 
     # --- Background Verification (BGV) ---
     BGV_SELECTED_CODE = 102 # Implies BGV Cleared

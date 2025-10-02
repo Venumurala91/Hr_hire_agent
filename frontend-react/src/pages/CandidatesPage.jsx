@@ -1,14 +1,23 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Modal } from '../components/Modal';
+import { StageTracker } from '../components/StageTracker';
+import { Pagination } from '../components/Pagination';
+
+const ITEMS_PER_PAGE = 10; // Define how many candidates to show per page
 
 export function CandidatesPage({ apiFetch, showToast, STATUS_OPTIONS, PIPELINE_STAGES, globalSearchTerm, activePageProp, setActivePage }) {
     const [candidates, setCandidates] = useState([]);
     const [jobs, setJobs] = useState([]);
     const [counts, setCounts] = useState({});
     const [filters, setFilters] = useState({ job_id: '', status: '' });
-    const [activeTab, setActiveTab] = useState('ATS Shortlisted');
+    
+    const [activeTab, setActiveTab] = useState('All');
+    
     const [selectedIds, setSelectedIds] = useState(new Set());
     
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalCandidates, setTotalCandidates] = useState(0);
+
     const [currentCandidate, setCurrentCandidate] = useState(null);
     const [isUpdateModalOpen, setUpdateModalOpen] = useState(false);
     const [isViewProfileModalOpen, setViewProfileModalOpen] = useState(false);
@@ -20,20 +29,37 @@ export function CandidatesPage({ apiFetch, showToast, STATUS_OPTIONS, PIPELINE_S
     const selectAllCheckboxRef = useRef();
 
     const fetchData = useCallback(async () => {
-        const params = new URLSearchParams({ ...filters, search: globalSearchTerm });
-        if (!filters.status) params.set('status', activeTab);
+        const params = new URLSearchParams({ 
+            ...filters, 
+            search: globalSearchTerm,
+            page: currentPage,
+            limit: ITEMS_PER_PAGE 
+        });
+        
+        if (activeTab !== 'All' && !filters.status) {
+            params.set('status', activeTab);
+        }
         
         try {
-            const [candidateData, countData, jobsData] = await Promise.all([
+            const [data, countData, jobsData] = await Promise.all([
                 apiFetch(`/api/candidates?${params.toString()}`),
                 apiFetch('/api/candidates/counts'),
                 apiFetch('/api/jobs')
             ]);
-            setCandidates(candidateData);
+            setCandidates(data.candidates);
+            setTotalCandidates(data.total); 
             setCounts(countData);
             setJobs(jobsData);
-        } catch (error) { console.error("Failed to fetch page data"); }
-    }, [filters, activeTab, globalSearchTerm, apiFetch]);
+        } catch (error) { 
+            console.error("Failed to fetch page data");
+            setCandidates([]); // Reset candidates on error
+            setTotalCandidates(0);
+        }
+    }, [filters, activeTab, globalSearchTerm, currentPage, apiFetch]);
+
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [globalSearchTerm, filters, activeTab]);
     
     useEffect(() => {
         const [page, params] = activePageProp.split('?');
@@ -53,8 +79,10 @@ export function CandidatesPage({ apiFetch, showToast, STATUS_OPTIONS, PIPELINE_S
 
     useEffect(() => {
         if (selectAllCheckboxRef.current) {
-            selectAllCheckboxRef.current.checked = candidates.length > 0 && selectedIds.size === candidates.length;
-            selectAllCheckboxRef.current.indeterminate = selectedIds.size > 0 && selectedIds.size < candidates.length;
+            const allVisibleIds = new Set(candidates.map(c => c.id));
+            const selectedVisibleCount = [...selectedIds].filter(id => allVisibleIds.has(id)).length;
+            selectAllCheckboxRef.current.checked = allVisibleIds.size > 0 && selectedVisibleCount === allVisibleIds.size;
+            selectAllCheckboxRef.current.indeterminate = selectedVisibleCount > 0 && selectedVisibleCount < allVisibleIds.size;
         }
     }, [selectedIds, candidates]);
 
@@ -105,7 +133,7 @@ export function CandidatesPage({ apiFetch, showToast, STATUS_OPTIONS, PIPELINE_S
                     body: JSON.stringify({ candidate_ids: [...selectedIds] })
                 });
                 setSelectedIds(new Set());
-                fetchData();
+                fetchData(); // Refetch current page
             } catch (error) {}
         }
     };
@@ -119,18 +147,14 @@ export function CandidatesPage({ apiFetch, showToast, STATUS_OPTIONS, PIPELINE_S
     const handleActionClick = async (action) => {
         const { candidate } = actionMenu;
         setActionMenu({ visible: false }); 
-
         if (action === 'view-profile') {
             try {
                 const fullCandidateData = await apiFetch(`/api/candidates/${candidate.id}`);
                 setCurrentCandidate(fullCandidateData);
                 setViewProfileModalOpen(true);
-            } catch (error) {
-                showToast('Could not load candidate profile.', 'error');
-            }
+            } catch (error) { showToast('Could not load candidate profile.', 'error'); }
             return;
         }
-
         setCurrentCandidate(candidate);
         if (action === 'update-status') setUpdateModalOpen(true);
         if (action === 'contact') setContactModalOpen(true);
@@ -165,7 +189,7 @@ export function CandidatesPage({ apiFetch, showToast, STATUS_OPTIONS, PIPELINE_S
         const s = (status || '').toLowerCase();
         if (s.includes('shortlisted')) return 'shortlisted';
         if (s.includes('interview')) return 'interview';
-        if (s.includes('offer')) return 'offer';
+        if (s.includes('offer') || s.includes('cleared') || s.includes('document')) return 'offer';
         if (s.includes('joined')) return 'joined';
         if (s.includes('rejected') || s.includes('declined')) return 'rejected';
         return 'default';
@@ -186,6 +210,9 @@ export function CandidatesPage({ apiFetch, showToast, STATUS_OPTIONS, PIPELINE_S
 
             <div className="card candidate-pipeline">
                 <div className="pipeline-tabs">
+                    <button className={`tab-btn ${activeTab === 'All' && !filters.status ? 'active' : ''}`} onClick={() => handleTabClick('All')}>
+                        All Candidates
+                    </button>
                     {PIPELINE_STAGES.map(stage => (
                         <button key={stage} className={`tab-btn ${activeTab === stage && !filters.status ? 'active' : ''}`} onClick={() => handleTabClick(stage)}>
                             {stage.replace(/ l\d/i, '').replace(' scheduled', '')}
@@ -206,7 +233,7 @@ export function CandidatesPage({ apiFetch, showToast, STATUS_OPTIONS, PIPELINE_S
                             <th>CANDIDATE</th><th>APPLIED FOR</th><th className="text-center">ATS SCORE</th><th>MOBILE NUMBER</th><th className="text-center">STATUS</th><th className="text-center">ACTIONS</th>
                         </tr></thead>
                         <tbody>
-                            {candidates.map(c => {
+                            {candidates.length > 0 ? candidates.map(c => {
                                 const initials = ((c.first_name?.[0] || '') + (c.last_name?.[0] || '')).toUpperCase();
                                 return (
                                 <tr key={c.id} className={selectedIds.has(c.id) ? 'selected' : ''}>
@@ -216,7 +243,6 @@ export function CandidatesPage({ apiFetch, showToast, STATUS_OPTIONS, PIPELINE_S
                                     <td className="text-center"><div className="ats-score-cell" style={{justifyContent: 'center'}}><div className="ats-progress"><div className="ats-progress-bar" style={{width: `${c.ats_score || 0}%`}}></div></div><span className="ats-score-value">{c.ats_score ? `${Math.round(c.ats_score)}%` : 'N/A'}</span></div></td>
                                     <td>{c.phone_number?.replace('whatsapp:', '') || 'N/A'}</td>
                                     <td className="text-center"><span className={`status-pill status-${getStatusPillClass(c.status)}`}>{c.status}</span></td>
-                                    {/* === THIS IS THE FIX === */}
                                     <td className="text-center">
                                         <button className="action-btn" onClick={(e) => openActionMenu(e, c)}>
                                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1"></circle><circle cx="12" cy="5" r="1"></circle><circle cx="12" cy="19" r="1"></circle></svg>
@@ -224,10 +250,19 @@ export function CandidatesPage({ apiFetch, showToast, STATUS_OPTIONS, PIPELINE_S
                                     </td>
                                 </tr>
                                 );
-                            })}
+                            }) : (
+                                <tr><td colSpan="7" className="placeholder-row">No candidates found.</td></tr>
+                            )}
                         </tbody>
                     </table>
                 </div>
+                
+                <Pagination
+                    currentPage={currentPage}
+                    totalItems={totalCandidates}
+                    itemsPerPage={ITEMS_PER_PAGE}
+                    onPageChange={(page) => setCurrentPage(page)}
+                />
             </div>
 
             {actionMenu.visible && (
@@ -252,8 +287,13 @@ export function CandidatesPage({ apiFetch, showToast, STATUS_OPTIONS, PIPELINE_S
             </Modal>
 
             <Modal isOpen={isViewProfileModalOpen} onClose={() => setViewProfileModalOpen(false)} size="large">
-                <div className="modal-header"><h2>{currentCandidate?.name || 'Candidate Profile'}</h2><button className="close-btn" onClick={() => setViewProfileModalOpen(false)}>&times;</button></div>
+                <div className="modal-header">
+                    <h2>{currentCandidate?.name || 'Candidate Profile'}</h2>
+                    <button className="close-btn" onClick={() => setViewProfileModalOpen(false)}>&times;</button>
+                </div>
                 {currentCandidate && <>
+                    <StageTracker currentStatus={currentCandidate.status} statusHistory={currentCandidate.status_history || []} />
+
                     <div className="profile-grid">
                         <div className="profile-details">
                             <p><strong>Email:</strong> <span>{currentCandidate.email}</span></p>
@@ -266,10 +306,12 @@ export function CandidatesPage({ apiFetch, showToast, STATUS_OPTIONS, PIPELINE_S
                             <div className="score-circle">{Math.round(currentCandidate.ats_score || 0)}%</div>
                         </div>
                     </div>
+
                     <div className="profile-summary">
                         <h4>AI Shortlisting Summary</h4>
                         <p>{currentCandidate.ai_analysis?.summary_reason || 'No AI summary available.'}</p>
                     </div>
+
                     <div className="profile-skills">
                         <h4>Matched Skills</h4>
                         <div className="skills-container">
@@ -278,6 +320,22 @@ export function CandidatesPage({ apiFetch, showToast, STATUS_OPTIONS, PIPELINE_S
                                 : <p>No specific skills identified.</p>
                             }
                         </div>
+                    </div>
+
+                    <div className="modal-footer" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div>
+                            {currentCandidate.resume_path && (
+                                <a 
+                                    href={`/${currentCandidate.resume_path}`} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer" 
+                                    className="btn btn-secondary"
+                                >
+                                    View Resume
+                                </a>
+                            )}
+                        </div>
+                        <button type="button" className="btn btn-secondary" onClick={() => setViewProfileModalOpen(false)}>Close</button>
                     </div>
                 </>}
             </Modal>

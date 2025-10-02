@@ -356,12 +356,25 @@ body {
 
 /* --- 5. Candidates View --- */
 .candidate-pipeline { padding: 0; }
+/* === REPLACE WITH THIS CODE === */
+/* === REPLACE WITH THIS CODE === */
 .pipeline-tabs {
     display: flex;
     gap: 8px;
     padding: 12px 24px;
     border-bottom: 1px solid var(--border-color);
-    overflow-x: auto;
+    overflow-x: auto; /* This enables the scrolling behavior */
+
+    /* --- Add these lines to hide the scrollbar --- */
+    /* For Firefox */
+    scrollbar-width: none;
+    /* For Internet Explorer and Edge */
+    -ms-overflow-style: none;
+}
+
+/* For Chrome, Safari, and Opera */
+.pipeline-tabs::-webkit-scrollbar {
+    display: none;
 }
 .tab-btn {
     background: none; border: none;
@@ -614,7 +627,6 @@ table input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; }
 .profile-summary h4, .profile-skills h4 { margin-bottom: 12px; font-weight: 600; }
 .skills-container { display: flex; flex-wrap: wrap; gap: 8px; }
 .skill-pill { background-color: var(--primary-light); color: var(--primary-dark); padding: 4px 12px; border-radius: 99px; font-size: 13px; font-weight: 500; }
-
 /* --- 11. Messages Three-Pane Layout --- */
 .messages-container-grid { padding: 0; display: grid; grid-template-columns: 280px 320px 1fr; height: calc(100vh - 150px); overflow: hidden; border: 1px solid var(--border-color); }
 .status-groups-sidebar { border-right: 1px solid var(--border-color); display: flex; flex-direction: column; }
@@ -633,22 +645,290 @@ table input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; }
 .candidate-list-header h2 { font-size: 1.125rem; }
 .candidate-list-header label { font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 8px; }
 .candidate-list-body { overflow-y: auto; flex-grow: 1; }
-.candidate-item { display: flex; align-items: center; gap: 12px; padding: 12px 20px; border-bottom: 1px solid var(--border-color); cursor: pointer; }
-.candidate-item.selected { background-color: var(--primary-light); }
-.candidate-item .info .job { font-size: 13px; color: var(--text-secondary); }
+
+.candidate-item { 
+  display: flex; 
+  align-items: flex-start; /* Align to the top */
+  gap: 12px; 
+  padding: 16px 20px; 
+  border-bottom: 1px solid var(--border-color); 
+  cursor: pointer; 
+}
+.candidate-item.selected { 
+  background-color: var(--primary-light); 
+}
+
+/* New vertical layout for the info block */
+.candidate-item .info {
+  display: flex;
+  flex-direction: column;
+  gap: 8px; /* Space between name/job and contact info */
+}
+
+.candidate-item .info .name {
+  font-weight: 600;
+  color: var(--text-primary);
+  font-size: 14px;
+}
+.candidate-item .info .job {
+  font-size: 13px;
+  color: var(--text-secondary);
+  display: block; 
+}
+
+/* New styles for the contact details line */
+.candidate-item .contact-details {
+  display: flex;
+  flex-wrap: wrap; /* Allow wrapping if needed */
+  gap: 16px; /* Space between email and phone */
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+.contact-item {
+  display: flex;
+  align-items: center;
+  gap: 6px; /* Space between icon and text */
+}
+.contact-item svg {
+  flex-shrink: 0; /* Prevent icon from shrinking */
+}
+
 .message-composer-pane { display: flex; flex-direction: column; background-color: #f8fafc; }
 .composer-header { display: flex; justify-content: space-between; align-items: center; padding: 20px; border-bottom: 1px solid var(--border-color); background-color: var(--card-bg); flex-shrink: 0; }
 .composer-header h3 { font-size: 1rem; font-weight: 600; }
-.composer-form { padding: 20px; display: flex; flex-direction: column; flex-grow: 1; }
-.composer-form .form-group:last-of-type { flex-grow: 1; display: flex; flex-direction: column; }
-.composer-form textarea { flex-grow: 1; resize: none; }
+
+.composer-form {
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  overflow: hidden;
+}
+.composer-form-content {
+  padding: 20px;
+  overflow-y: auto;
+  flex-grow: 1;
+}
+.composer-form textarea {
+  min-height: 120px;
+  resize: vertical;
+}
+
 .channel-toggle { display: flex; background-color: #e2e8f0; border-radius: 6px; padding: 4px; margin-bottom: 16px; }
 .channel-toggle .toggle-btn { flex: 1; padding: 6px; border: none; background: none; border-radius: 4px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
 .channel-toggle .toggle-btn.active { background-color: var(--card-bg); color: var(--primary-dark); box-shadow: var(--shadow-sm); }
-.composer-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 16px; flex-shrink: 0; }
+.composer-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  flex-shrink: 0;
+  border-top: 1px solid var(--border-color);
+  background-color: white;
+}
 .composer-footer span { font-size: 13px; color: var(--text-secondary); }
 .preview-subject { font-size: 1.1rem; padding-bottom: 16px; margin-bottom: 16px; border-bottom: 1px solid var(--border-color); }
 .preview-body { font-size: 1rem; line-height: 1.6; color: var(--text-secondary); }
 .workspace-placeholder { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; height: 100%; color: var(--text-secondary); }
 .workspace-placeholder svg { color: var(--border-color); margin-bottom: 16px; }
 .workspace-placeholder p { font-size: 1rem; }
+
+/* --- 12. Stage Tracker Component --- */
+.stage-tracker-container {
+  width: 100%;
+  padding-bottom: 24px;
+  margin-bottom: 24px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.stage-tracker {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.stage-node {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  position: relative;
+}
+
+.stage-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2px solid var(--border-color);
+  background-color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+}
+
+.stage-name {
+  margin-top: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-tertiary);
+  transition: color 0.3s ease;
+}
+
+/* Connector Line */
+.stage-connector {
+  flex-grow: 1;
+  height: 2px;
+  background-color: var(--border-color);
+  margin: 0 -12px;
+  transform: translateY(-10px); /* Align with middle of icon */
+  transition: background-color 0.3s ease;
+}
+.stage-connector.active {
+  background-color: var(--primary-color);
+}
+
+/* Node States */
+.stage-node.completed .stage-icon {
+  background-color: var(--success-color);
+  border-color: var(--success-color);
+  color: white;
+}
+.stage-node.completed .stage-name {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.stage-node.in-progress .stage-icon {
+  background-color: var(--primary-light);
+  border-color: var(--primary-color);
+  position: relative;
+}
+/* Pulsing animation for in-progress */
+.stage-node.in-progress .stage-icon::after {
+  content: '';
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background-color: var(--primary-color);
+  animation: pulse 1.5s infinite;
+}
+@keyframes pulse {
+  0% { transform: scale(0.9); opacity: 0.7; }
+  50% { transform: scale(1.1); opacity: 0; }
+  100% { transform: scale(0.9); opacity: 0.7; }
+}
+.stage-node.in-progress .stage-name {
+  color: var(--primary-dark);
+  font-weight: 600;
+}
+
+.stage-node.rejected .stage-icon {
+  background-color: var(--danger-color);
+  border-color: var(--danger-color);
+  color: white;
+}
+.stage-node.rejected .stage-name {
+  color: var(--danger-color);
+  font-weight: 600;
+}
+
+.stage-node.skipped .stage-icon {
+    background-color: #f8fafc;
+}
+.stage-node.skipped .stage-name {
+    color: var(--text-tertiary);
+    text-decoration: line-through;
+}
+
+.current-status-label {
+  text-align: center;
+  margin-top: 16px;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+.current-status-label strong {
+  color: var(--primary-dark);
+}
+
+
+/* Add these styles to the end of your App.css file */
+/* --- 13. Pagination Component --- */
+.pagination-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 24px;
+  border-top: 1px solid var(--border-color);
+  background-color: var(--card-bg);
+  border-bottom-left-radius: var(--border-radius);
+  border-bottom-right-radius: var(--border-radius);
+}
+
+.pagination-info {
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px; /* Increased gap for better spacing */
+}
+
+/* Style for individual page number buttons */
+.pagination-controls .page-btn {
+  background-color: transparent;
+  border: none;
+  border-radius: 6px;
+  min-width: 36px;
+  height: 36px;
+  padding: 6px 12px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s, color 0.2s;
+  color: var(--text-secondary);
+}
+.pagination-controls .page-btn:hover:not(:disabled) {
+  background-color: #f1f5f9; /* Lighter hover */
+}
+.pagination-controls .page-btn.active {
+  background-color: var(--primary-color);
+  color: white;
+  font-weight: 600;
+}
+
+/* Style for Prev/Next buttons */
+.pagination-controls .page-btn-nav {
+  background-color: white;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 8px 14px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s, color 0.2s;
+  color: var(--text-primary);
+}
+.pagination-controls .page-btn-nav:hover:not(:disabled) {
+  background-color: #f8fafc;
+  color: var(--primary-dark);
+}
+.pagination-controls .page-btn-nav:disabled {
+  color: var(--text-tertiary);
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* Style for the '...' ellipsis */
+.pagination-ellipsis {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  color: var(--text-tertiary);
+  font-weight: 600;
+}

@@ -1,10 +1,9 @@
-from flask import Flask, request, jsonify, render_template, Response, redirect, url_for
+from flask import Flask, request, jsonify, render_template, Response, redirect, url_for, send_from_directory
 from sqlalchemy.orm import Session
 from sqlalchemy import func, or_
 import os
 import uuid
 import json
-
 
 # Local imports
 from config.config_loader import config
@@ -18,13 +17,18 @@ from src.helpers import save_uploaded_file, cleanup_directory
 
 # --- Flask App Initialization ---
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+# The static_folder is now pointing to the React build output, but for development,
+# the Vite proxy handles this. For production, you'd serve the React build folder.
+# The `uploads` folder needs a dedicated route to be served.
 app = Flask(__name__,
-            template_folder=os.path.join(PROJECT_ROOT, 'frontend', 'templates'),
-            static_folder=os.path.join(PROJECT_ROOT, 'frontend', 'static'))
+            static_folder=os.path.join(PROJECT_ROOT, 'frontend-react', 'dist'),
+            static_url_path='/')
+
 app.secret_key = config.APP_SECRET_KEY
 
 # --- Directory and DB Initialization ---
 os.makedirs(config.TEMP_BULK_UPLOAD_FOLDER, exist_ok=True)
+os.makedirs(config.RESUME_UPLOAD_FOLDER, exist_ok=True) 
 with app.app_context():
     init_db()
     logger.info("Application started and database initialized.")
@@ -50,28 +54,28 @@ def get_hiring_service():
         db_gen.close()
 
 # =============================================================================
-# === 1. PAGE SERVING ROUTES ==================================================
+# === 1. FILE & PAGE SERVING ROUTES ===========================================
 # =============================================================================
 
-@app.route('/')
-def index():
-    return redirect(url_for('dashboard'))
+# This route serves the main React application (index.html) for any non-API route.
+@app.route('/', defaults={'path': ''})
+@app.route('/<path:path>')
+def serve_react_app(path):
+    if path != "" and os.path.exists(os.path.join(app.static_folder, path)):
+        return send_from_directory(app.static_folder, path)
+    else:
+        # For development, this is less critical as Vite handles it.
+        # For production, this ensures your React router works.
+        if os.path.exists(os.path.join(app.static_folder, 'index.html')):
+            return send_from_directory(app.static_folder, 'index.html')
+        return "React app not built. Run 'npm run build' in frontend-react directory.", 404
 
-@app.route('/dashboard')
-def dashboard():
-    return render_template('dashboard.html', title='Dashboard', active_page='dashboard')
-
-@app.route('/candidates')
-def candidates():
-    return render_template('candidates.html', title='Candidates', active_page='candidates')
-
-@app.route('/messages')
-def messages():
-    return render_template('messages.html', title='Messages', active_page='messages')
-
-@app.route('/favicon.ico')
-def favicon():
-    return Response(status=204)
+# === NEW: This route is essential for the "View Resume" button to work ===
+# It securely serves files from the 'uploads' directory at the project root.
+@app.route('/uploads/<path:subpath>')
+def serve_uploads(subpath):
+    return send_from_directory(os.path.join(PROJECT_ROOT, 'uploads'), subpath)
+# ==========================================================================
 
 # =============================================================================
 # === 2. API ENDPOINTS ========================================================
@@ -138,7 +142,6 @@ def bulk_delete_jobs_api():
         hiring_service.bulk_delete_jobs(job_ids)
         return jsonify({"message": f"{len(job_ids)} jobs deleted successfully."}), 200
 
-
 # --- Candidate Workflow Endpoints ---
 @app.route("/api/candidates/bulk_process", methods=["POST"])
 def bulk_process_resumes():
@@ -160,18 +163,50 @@ def bulk_process_resumes():
 
 @app.route("/api/candidates", methods=["GET"])
 def get_candidates_api():
-    status_filter, job_id_filter, search_query = request.args.get('status'), request.args.get('job_id', type=int), request.args.get('search')
+    page = request.args.get('page', 1, type=int)
+    limit = request.args.get('limit', 10, type=int)
+    status_filter = request.args.get('status')
+    job_id_filter = request.args.get('job_id', type=int)
+    search_query = request.args.get('search')
+    
     for hiring_service in get_hiring_service():
-        candidates = hiring_service.get_candidates(status=status_filter, job_id=job_id_filter, search_query=search_query)
+        query, total_count = hiring_service.get_candidates(
+            status=status_filter, 
+            job_id=job_id_filter, 
+            search_query=search_query,
+            paginated=True
+        )
+        
+        offset = (page - 1) * limit
+        paginated_query = query.offset(offset).limit(limit)
+        candidates = paginated_query.all()
+        
         results = [{"id": c.id, "first_name": c.first_name, "last_name": c.last_name, "email": c.email, "phone_number": c.phone_number, "status": c.current_status, "job_title": c.job_description.title if c.job_description else "N/A", "ats_score": c.ats_score} for c in candidates]
-        return jsonify(results), 200
+        
+        return jsonify({
+            "candidates": results,
+            "total": total_count
+        }), 200
 
 @app.route("/api/candidates/<int:candidate_id>", methods=["GET", "DELETE"])
 def handle_candidate(candidate_id):
     for hiring_service in get_hiring_service():
         if request.method == "GET":
             c = hiring_service.get_candidate(candidate_id)
-            return jsonify({ "id": c.id, "first_name": c.first_name, "last_name": c.last_name, "name": f"{c.first_name or ''} {c.last_name or ''}".strip(), "email": c.email, "phone_number": c.phone_number, "status": c.current_status, "job_title": c.job_description.title if c.job_description else "N/A", "ats_score": c.ats_score, "ai_analysis": json.loads(c.ai_analysis) if c.ai_analysis else {} }), 200
+            return jsonify({ 
+                "id": c.id, 
+                "first_name": c.first_name, 
+                "last_name": c.last_name, 
+                "name": f"{c.first_name or ''} {c.last_name or ''}".strip(), 
+                "email": c.email, 
+                "phone_number": c.phone_number, 
+                "status": c.current_status, 
+                "job_title": c.job_description.title if c.job_description else "N/A", 
+                "ats_score": c.ats_score, 
+                "ai_analysis": json.loads(c.ai_analysis) if c.ai_analysis else {},
+                "status_history": [{"status_description": h.status_description, "changed_at": h.changed_at.isoformat()} for h in c.status_history],
+                "resume_path": c.resume_path
+            }), 200
         if request.method == "DELETE":
             hiring_service.bulk_delete_candidates([candidate_id])
             return jsonify({"message": f"Candidate {candidate_id} deleted successfully."}), 200
@@ -198,10 +233,17 @@ def update_candidate_status(candidate_id):
 def get_active_candidates_api():
     for hiring_service in get_hiring_service():
         candidates = hiring_service.get_active_candidates()
-        results = [{"id": c.id, "name": f"{c.first_name or ''} {c.last_name or ''}".strip(), "status": c.current_status, "job_title": c.job_description.title if c.job_description else "N/A"} for c in candidates]
+        # Add email and phone_number to the response
+        results = [{
+            "id": c.id, 
+            "name": f"{c.first_name or ''} {c.last_name or ''}".strip(), 
+            "status": c.current_status, 
+            "job_title": c.job_description.title if c.job_description else "N/A",
+            "email": c.email,
+            "phone_number": c.phone_number
+        } for c in candidates]
         return jsonify(results), 200
-
-# MODIFIED: Upgraded endpoint to handle both Email and WhatsApp
+    
 @app.route("/api/messages/bulk_send", methods=["POST"])
 def bulk_send_messages():
     data = request.json
