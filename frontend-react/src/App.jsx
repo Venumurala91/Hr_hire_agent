@@ -9,97 +9,20 @@ import { Modal } from './components/Modal';
 import { DashboardPage } from './pages/DashboardPage';
 import { CandidatesPage } from './pages/CandidatesPage';
 import { MessagesPage } from './pages/MessagesPage';
+import { CandidateDetailPage } from './pages/CandidateDetailPage';
 
 // =============================================================================
 // === API Service & Utilities (Centralized for the whole app) ===============
 // =============================================================================
-
-const showToast = (message, type = 'success') => {
-    let toastContainer = document.getElementById('toast-container');
-    if (!toastContainer) {
-        toastContainer = document.createElement('div');
-        toastContainer.id = 'toast-container';
-        document.body.appendChild(toastContainer);
-    }
-    const toast = document.createElement('div');
-    toast.className = `toast ${type}`;
-    toast.textContent = message;
-    toastContainer.appendChild(toast);
-    setTimeout(() => toast.remove(), 4000);
-};
-
-const apiFetch = async (endpoint, options = {}) => {
-  try {
-    const response = await fetch(endpoint, options);
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.message || `HTTP error! Status: ${response.status}`);
-    }
-    if (response.status === 204 || response.headers.get("content-length") === "0") {
-        if (options.method && options.method !== 'GET') {
-            showToast('Operation successful!', 'success');
-        }
-        return null;
-    }
-    const data = await response.json();
-    if (options.method && options.method !== 'GET' && data.message) {
-        showToast(data.message, 'success');
-    }
-    return data;
-  } catch (error) {
-    console.error(`API Fetch Error (${endpoint}):`, error);
-    showToast(error.message, 'error');
-    throw error;
-  }
-};
-
+const showToast = (message, type = 'success') => { let toastContainer = document.getElementById('toast-container'); if (!toastContainer) { toastContainer = document.createElement('div'); toastContainer.id = 'toast-container'; document.body.appendChild(toastContainer); } const toast = document.createElement('div'); toast.className = `toast ${type}`; toast.textContent = message; toastContainer.appendChild(toast); setTimeout(() => toast.remove(), 4000); };
+const apiFetch = async (endpoint, options = {}) => { try { const response = await fetch(endpoint, options); if (!response.ok) { const errorData = await response.json(); throw new Error(errorData.message || `HTTP error! Status: ${response.status}`); } if (response.status === 204 || response.headers.get("content-length") === "0") { if (options.method && options.method !== 'GET') { showToast('Operation successful!', 'success'); } return null; } const data = await response.json(); if (options.method && options.method !== 'GET' && data.message) { showToast(data.message, 'success'); } return data; } catch (error) { console.error(`API Fetch Error (${endpoint}):`, error); showToast(error.message, 'error'); throw error; } };
 const formatDate = (dateString) => new Date(dateString).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-
 const PIPELINE_STAGES = ["ATS Shortlisted", "L1 interview scheduled", "L2 interview scheduled", "HR scheduled", "Offer Letter Issued", "Candidate Joined", "Resume declined"];
-const STATUS_OPTIONS = [
-    "ATS Shortlisted", "L1 interview scheduled", "L1 Selected", "L1 Rejected",
-    "L2 interview scheduled", "L2 Selected", "L2 Rejected", "HR scheduled",
-    "HR Round Selected", "HR Round Rejected", 
-    // New statuses added here
-    "Document Verification Pending", "Documents Cleared", "Documents Rejected",
-    "Offer Letter Issued", "Offer Accepted",
-    "Offer Rejected", "Candidate Joined", "Candidate Not Joined", "Resume declined"
-];
+const STATUS_OPTIONS = [ "ATS Shortlisted", "L1 interview scheduled", "L1 Selected", "L1 Rejected", "L2 interview scheduled", "L2 Selected", "L2 Rejected", "HR scheduled", "HR Round Selected", "HR Round Rejected", "Document Verification Pending", "Documents Cleared", "Documents Rejected", "Offer Letter Issued", "Offer Accepted", "Offer Rejected", "Candidate Joined", "Candidate Not Joined", "Resume declined" ];
+const MESSAGE_TEMPLATES = { "ATS Shortlisted": { subject: "Update on your application for {job_title}", body: "Hi {candidate_name},\n\nGreat news! Your application for the {job_title} position has been shortlisted. Our HR team is reviewing it and will be in touch shortly to schedule the next round of interviews if your profile is a match.\n\nBest regards,\nThe Hiring Team" }, "L1 interview scheduled": { subject: "Invitation to Interview for the {job_title} role", body: "Hi {candidate_name},\n\nCongratulations! We would like to invite you for the first technical interview (L1) for the {job_title} position.\n\nOur HR team will contact you shortly via a separate email to coordinate a suitable time. We look forward to speaking with you.\n\nBest regards,\nThe Hiring Team" }, "L1 Selected": { subject: "Update on your {job_title} Interview Process", body: "Hi {candidate_name},\n\nGreat news! You have successfully cleared the L1 interview for the {job_title} position. We were impressed with your skills and will be in touch soon to schedule the next round.\n\nBest regards,\nThe Hiring Team" }, "L1 Rejected": { subject: "Update on your application for {job_title}", body: "Hi {candidate_name},\n\nThank you for your time during the L1 interview for the {job_title} role. After careful consideration, we have decided not to proceed with your application at this time. We wish you the best in your search.\n\nBest regards,\nThe Hiring Team" }, "Offer Letter Issued": { subject: "Job Offer for the {job_title} Position!", body: "Hi {candidate_name},\n\nCongratulations! We are thrilled to formally offer you the position of {job_title}. An official offer letter has been sent to your email with all the details.\n\nWe look forward to you joining us!\n\nBest regards,\nThe Hiring Team" },};
+const STAGE_GROUPS = { SCREENING: ["ATS Shortlisted", "Resume declined"], L1_INTERVIEW: ["L1 interview scheduled", "L1 Selected", "L1 Rejected"], L2_INTERVIEW: ["L2 interview scheduled", "L2 Selected", "L2 Rejected"], HR_ROUND: ["HR scheduled", "HR Round Selected", "HR Round Rejected"], DOCUMENT_VERIFICATION: ["Document Verification Pending", "Documents Cleared", "Documents Rejected"], OFFER: ["Offer Letter Issued", "Offer Accepted", "Offer Rejected", "Candidate Not Joined"], JOINED: ["Candidate Joined"],};
+const STAGE_PASS_STATUS = { SCREENING: "ATS Shortlisted", L1_INTERVIEW: "L1 Selected", L2_INTERVIEW: "L2 Selected", HR_ROUND: "HR Round Selected", DOCUMENT_VERIFICATION: "Documents Cleared", OFFER: "Offer Accepted", JOINED: "Candidate Joined",};
 
-const MESSAGE_TEMPLATES = {
-    "ATS Shortlisted": { subject: "Update on your application for {job_title}", body: "Hi {candidate_name},\n\nGreat news! Your application for the {job_title} position has been shortlisted. Our HR team is reviewing it and will be in touch shortly to schedule the next round of interviews if your profile is a match.\n\nBest regards,\nThe Hiring Team" },
-    "L1 interview scheduled": { subject: "Invitation to Interview for the {job_title} role", body: "Hi {candidate_name},\n\nCongratulations! We would like to invite you for the first technical interview (L1) for the {job_title} position.\n\nOur HR team will contact you shortly via a separate email to coordinate a suitable time. We look forward to speaking with you.\n\nBest regards,\nThe Hiring Team" },
-    "L1 Selected": { subject: "Update on your {job_title} Interview Process", body: "Hi {candidate_name},\n\nGreat news! You have successfully cleared the L1 interview for the {job_title} position. We were impressed with your skills and will be in touch soon to schedule the next round.\n\nBest regards,\nThe Hiring Team" },
-    "L1 Rejected": { subject: "Update on your application for {job_title}", body: "Hi {candidate_name},\n\nThank you for your time during the L1 interview for the {job_title} role. After careful consideration, we have decided not to proceed with your application at this time. We wish you the best in your search.\n\nBest regards,\nThe Hiring Team" },
-    "Offer Letter Issued": { subject: "Job Offer for the {job_title} Position!", body: "Hi {candidate_name},\n\nCongratulations! We are thrilled to formally offer you the position of {job_title}. An official offer letter has been sent to your email with all the details.\n\nWe look forward to you joining us!\n\nBest regards,\nThe Hiring Team" },
-};
-
-
-// === ADD THESE NEW CONSTANTS RIGHT HERE ==================================
-// =========================================================================
-const STAGE_GROUPS = {
-  SCREENING: ["ATS Shortlisted", "Resume declined"],
-  L1_INTERVIEW: ["L1 interview scheduled", "L1 Selected", "L1 Rejected"],
-  L2_INTERVIEW: ["L2 interview scheduled", "L2 Selected", "L2 Rejected"],
-  HR_ROUND: ["HR scheduled", "HR Round Selected", "HR Round Rejected"],
-  DOCUMENT_VERIFICATION: ["Document Verification Pending", "Documents Cleared", "Documents Rejected"],
-  // New statuses added to the OFFER group
-  OFFER: ["Document Verification Pending", "Documents Cleared", "Documents Rejected", "Offer Letter Issued", "Offer Accepted", "Offer Rejected", "Candidate Not Joined"],
-  JOINED: ["Candidate Joined"],
-};
-
-const STAGE_PASS_STATUS = {
-  SCREENING: "ATS Shortlisted",
-  L1_INTERVIEW: "L1 Selected",
-  L2_INTERVIEW: "L2 Selected",
-  HR_ROUND: "HR Round Selected",
-  DOCUMENT_VERIFICATION: "Documents Cleared",
-  OFFER: "Offer Accepted",
-  JOINED: "Candidate Joined", // Added for completeness
-};
-// =============================================================================
-// === Main App Component (The Conductor) ======================================
-// =============================================================================
 
 function App() {
   const [activePage, setActivePage] = useState('dashboard');
@@ -109,19 +32,15 @@ function App() {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
-
-  // NEW: State to track selected file count for the upload modal
   const [fileCount, setFileCount] = useState(0);
 
   useEffect(() => {
-    const timerId = setTimeout(() => {
-      setDebouncedSearchTerm(searchTerm);
-    }, 500);
+    const timerId = setTimeout(() => { setDebouncedSearchTerm(searchTerm); }, 500);
     return () => clearTimeout(timerId);
   }, [searchTerm]);
 
   const appUtils = useMemo(() => ({
-      apiFetch, formatDate, showToast, STATUS_OPTIONS, PIPELINE_STAGES, MESSAGE_TEMPLATES
+      apiFetch, formatDate, showToast, STATUS_OPTIONS, PIPELINE_STAGES, MESSAGE_TEMPLATES, STAGE_GROUPS, STAGE_PASS_STATUS
   }), []);
 
   useEffect(() => {
@@ -130,17 +49,48 @@ function App() {
     }
   }, [isBulkUploadModalOpen]);
 
-  const renderPage = () => {
-    const props = { ...appUtils, refreshTrigger, globalSearchTerm: debouncedSearchTerm, activePageProp: activePage, setActivePage };
-    const pageKey = activePage.split('?')[0];
-    switch (pageKey) {
-        case 'dashboard': return <DashboardPage {...props} />;
-        case 'candidates': return <CandidatesPage {...props} />;
-        case 'messages': return <MessagesPage {...props} />;
-        default: return <DashboardPage {...props} />;
-    }
-  };
+  const pageKey = activePage.split('?')[0];
+  const isDetailPage = pageKey.startsWith('candidates/');
 
+  const renderPage = () => {
+    if (isDetailPage) {
+        const candidateId = parseInt(pageKey.split('/')[1], 10);
+        return <CandidateDetailPage candidateId={candidateId} setActivePage={setActivePage} {...appUtils} />;
+    }
+
+    const props = { ...appUtils, refreshTrigger, globalSearchTerm: debouncedSearchTerm, activePageProp: activePage, setActivePage };
+    let pageComponent;
+    switch (pageKey) {
+        case 'dashboard': pageComponent = <DashboardPage {...props} />; break;
+        case 'candidates': pageComponent = <CandidatesPage {...props} />; break;
+        case 'messages': pageComponent = <MessagesPage {...props} />; break;
+        default: pageComponent = <DashboardPage {...props} />;
+    }
+
+    return (
+      <>
+        <header className="main-header">
+          <h1>{pageKey.charAt(0).toUpperCase() + pageKey.slice(1)}</h1>
+          <div className="header-actions">
+            <div className="search-bar">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+              <input type="text" placeholder="Search candidates..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+            </div>
+            <button className="btn btn-secondary" onClick={() => { setFileCount(0); setBulkUploadModalOpen(true); }}>
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+              Bulk Upload
+            </button>
+            <button className="btn btn-primary" onClick={() => setCreateJobModalOpen(true)}>
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+              Create Job
+            </button>
+          </div>
+        </header>
+        {pageComponent}
+      </>
+    );
+  };
+  
   const handleCreateJob = async (event) => {
     event.preventDefault();
     const formData = new FormData(event.target);
@@ -152,7 +102,6 @@ function App() {
     } catch (error) {}
   };
   
-  // MODIFIED: Corrected validation logic
   const handleBulkUpload = (event) => {
     event.preventDefault();
     const formData = new FormData(event.target);
@@ -163,35 +112,11 @@ function App() {
     setBulkUploadModalOpen(false);
     setActivePage('candidates?uploading=true');
   };
-  
-  // NEW: Handler to open the modal and reset the file count
-  const openBulkUploadModal = () => {
-      setFileCount(0); // Reset count when opening
-      setBulkUploadModalOpen(true);
-  };
 
   return (
     <div className="app-container">
-      <Sidebar activePage={activePage.split('?')[0]} setActivePage={setActivePage} />
-      <main className="main-content">
-        <header className="main-header">
-          <h1>{activePage.split('?')[0].charAt(0).toUpperCase() + activePage.split('?')[0].slice(1)}</h1>
-          <div className="header-actions">
-            <div className="search-bar">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-                <input type="text" placeholder="Search candidates..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
-            </div>
-            {/* MODIFIED: Use the new handler */}
-            <button className="btn btn-secondary" onClick={openBulkUploadModal}>
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
-                Bulk Upload
-            </button>
-            <button className="btn btn-primary" onClick={() => setCreateJobModalOpen(true)}>
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                Create Job
-            </button>
-          </div>
-        </header>
+      <Sidebar activePage={activePage.split('/')[0]} setActivePage={setActivePage} />
+      <main className={`main-content ${isDetailPage ? 'detail-page-active' : ''}`}>
         {renderPage()}
       </main>
 
@@ -206,46 +131,27 @@ function App() {
         </form>
       </Modal>
       
-      {/* =================================================================== */}
-      {/* === THIS ENTIRE MODAL IS THE FIX ================================== */}
-      {/* =================================================================== */}
       <Modal isOpen={isBulkUploadModalOpen} onClose={() => setBulkUploadModalOpen(false)}>
         <div className="modal-header"><h2>Bulk Upload Resumes</h2><button className="close-btn" onClick={() => setBulkUploadModalOpen(false)}>&times;</button></div>
         <form onSubmit={handleBulkUpload}>
             <div className="form-group"><label>Select Job Posting *</label><select name="job_description_id" required defaultValue=""><option value="" disabled>-- Please select a job --</option>{jobsForModal.map(j => <option key={j.id} value={j.id}>{j.title}</option>)}</select></div>
             <div className="form-group"><label>ATS Shortlist Threshold (%)</label><input type="number" name="ats_threshold" min="0" max="100" defaultValue="70" required/><p className="form-hint">Only candidates with ATS scores above this threshold will be shortlisted.</p></div>
-            
-            {/* MODIFIED: Replicated original HTML structure and added onChange handler */}
             <div className="form-group">
                 <label htmlFor="resumeFiles" className="file-upload-label">
                     <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
                     <span>Drop resume files here</span>
                     <p>or click to browse</p>
                 </label>
-                <input 
-                    type="file" 
-                    id="resumeFiles" 
-                    name="resumes" 
-                    multiple 
-                    required 
-                    accept=".pdf,.doc,.docx,.txt"
-                    style={{ display: 'none' }} // Visually hide the input
-                    onChange={(e) => setFileCount(e.target.files.length)} // Update state on change
-                />
-                {/* NEW: Conditional rendering for file count */}
+                <input type="file" id="resumeFiles" name="resumes" multiple required accept=".pdf,.doc,.docx,.txt" style={{ display: 'none' }} onChange={(e) => setFileCount(e.target.files.length)} />
                 <p className="file-info" style={{ textAlign: 'center', marginTop: '16px' }}>
                     {fileCount > 0 ? `${fileCount} file(s) selected` : 'Supported formats: PDF, DOC, DOCX, TXT'}
                 </p>
             </div>
-
             <div className="modal-footer"><button type="button" className="btn btn-secondary" onClick={() => setBulkUploadModalOpen(false)}>Cancel</button><button type="submit" className="btn btn-primary">Start Upload & Processing</button></div>
         </form>
       </Modal>
-
     </div>
   );
 }
-
-
 
 export default App;

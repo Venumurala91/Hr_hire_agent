@@ -1,5 +1,5 @@
 from flask import Flask, request, jsonify, render_template, Response, redirect, url_for, send_from_directory
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func, or_
 import os
 import uuid
@@ -8,7 +8,7 @@ import json
 # Local imports
 from config.config_loader import config
 from database.database import init_db, get_db
-from model.models import Candidate, JobDescription, StatusHistory
+from model.models import Candidate, JobDescription, StatusHistory, Interview # <-- Import Interview model
 from model.status_constants import StatusConstants
 from logger.logger import logger
 from exception.custom_exception import CustomException, ValidationError, APIError
@@ -17,9 +17,6 @@ from src.helpers import save_uploaded_file, cleanup_directory
 
 # --- Flask App Initialization ---
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-# The static_folder is now pointing to the React build output, but for development,
-# the Vite proxy handles this. For production, you'd serve the React build folder.
-# The `uploads` folder needs a dedicated route to be served.
 app = Flask(__name__,
             static_folder=os.path.join(PROJECT_ROOT, 'frontend-react', 'dist'),
             static_url_path='/')
@@ -57,31 +54,28 @@ def get_hiring_service():
 # === 1. FILE & PAGE SERVING ROUTES ===========================================
 # =============================================================================
 
-# This route serves the main React application (index.html) for any non-API route.
 @app.route('/', defaults={'path': ''})
 @app.route('/<path:path>')
 def serve_react_app(path):
+    # This logic handles serving the React app and its assets.
     if path != "" and os.path.exists(os.path.join(app.static_folder, path)):
         return send_from_directory(app.static_folder, path)
     else:
-        # For development, this is less critical as Vite handles it.
-        # For production, this ensures your React router works.
+        # For any other path, serve the main index.html to let React Router take over.
         if os.path.exists(os.path.join(app.static_folder, 'index.html')):
             return send_from_directory(app.static_folder, 'index.html')
+        # Fallback for development if React app isn't built yet
         return "React app not built. Run 'npm run build' in frontend-react directory.", 404
 
-# === NEW: This route is essential for the "View Resume" button to work ===
-# It securely serves files from the 'uploads' directory at the project root.
 @app.route('/uploads/<path:subpath>')
 def serve_uploads(subpath):
+    # This route is essential for the "View Resume" button to work.
     return send_from_directory(os.path.join(PROJECT_ROOT, 'uploads'), subpath)
-# ==========================================================================
 
 # =============================================================================
 # === 2. API ENDPOINTS ========================================================
 # =============================================================================
 
-# --- Dashboard & Job Endpoints ---
 @app.route("/api/dashboard/stats", methods=["GET"])
 def get_dashboard_stats():
     for hiring_service in get_hiring_service():
@@ -142,7 +136,6 @@ def bulk_delete_jobs_api():
         hiring_service.bulk_delete_jobs(job_ids)
         return jsonify({"message": f"{len(job_ids)} jobs deleted successfully."}), 200
 
-# --- Candidate Workflow Endpoints ---
 @app.route("/api/candidates/bulk_process", methods=["POST"])
 def bulk_process_resumes():
     resume_files = request.files.getlist('resumes')
@@ -168,25 +161,15 @@ def get_candidates_api():
     status_filter = request.args.get('status')
     job_id_filter = request.args.get('job_id', type=int)
     search_query = request.args.get('search')
-    
     for hiring_service in get_hiring_service():
         query, total_count = hiring_service.get_candidates(
-            status=status_filter, 
-            job_id=job_id_filter, 
-            search_query=search_query,
-            paginated=True
+            status=status_filter, job_id=job_id_filter, search_query=search_query, paginated=True
         )
-        
         offset = (page - 1) * limit
         paginated_query = query.offset(offset).limit(limit)
         candidates = paginated_query.all()
-        
         results = [{"id": c.id, "first_name": c.first_name, "last_name": c.last_name, "email": c.email, "phone_number": c.phone_number, "status": c.current_status, "job_title": c.job_description.title if c.job_description else "N/A", "ats_score": c.ats_score} for c in candidates]
-        
-        return jsonify({
-            "candidates": results,
-            "total": total_count
-        }), 200
+        return jsonify({"candidates": results, "total": total_count}), 200
 
 @app.route("/api/candidates/<int:candidate_id>", methods=["GET", "DELETE"])
 def handle_candidate(candidate_id):
@@ -194,17 +177,13 @@ def handle_candidate(candidate_id):
         if request.method == "GET":
             c = hiring_service.get_candidate(candidate_id)
             return jsonify({ 
-                "id": c.id, 
-                "first_name": c.first_name, 
-                "last_name": c.last_name, 
+                "id": c.id, "first_name": c.first_name, "last_name": c.last_name, 
                 "name": f"{c.first_name or ''} {c.last_name or ''}".strip(), 
-                "email": c.email, 
-                "phone_number": c.phone_number, 
-                "status": c.current_status, 
+                "email": c.email, "phone_number": c.phone_number, "status": c.current_status, 
                 "job_title": c.job_description.title if c.job_description else "N/A", 
                 "ats_score": c.ats_score, 
                 "ai_analysis": json.loads(c.ai_analysis) if c.ai_analysis else {},
-                "status_history": [{"status_description": h.status_description, "changed_at": h.changed_at.isoformat()} for h in c.status_history],
+                "status_history": [{"status_description": h.status_description, "changed_at": h.changed_at.isoformat(), "comments": h.comments, "changed_by": h.changed_by} for h in sorted(c.status_history, key=lambda x: x.changed_at, reverse=True)],
                 "resume_path": c.resume_path
             }), 200
         if request.method == "DELETE":
@@ -228,35 +207,52 @@ def update_candidate_status(candidate_id):
         candidate = hiring_service.update_candidate_status(candidate_id, new_status, comments, "HR")
         return jsonify({"message": f"Candidate status updated to '{candidate.current_status}'"}), 200
 
-# --- Messaging Endpoints ---
+@app.route("/api/candidates/<int:candidate_id>/interviews", methods=["GET"])
+def get_interviews_for_candidate(candidate_id):
+    db = next(get_db())
+    interviews = db.query(Interview).filter(Interview.candidate_id == candidate_id).order_by(Interview.round_number).all()
+    results = [{
+        "id": i.id, "round_number": i.round_number, "interviewer_name": i.interviewer_name,
+        "interview_date": i.interview_date.isoformat() if i.interview_date else None,
+        "score": i.score, "feedback": i.feedback, "status": i.status
+    } for i in interviews]
+    return jsonify(results), 200
+
+@app.route("/api/candidates/<int:candidate_id>/interviews", methods=["POST"])
+def add_interview_for_candidate(candidate_id):
+    db = next(get_db())
+    data = request.json
+    if not all(k in data for k in ['round_number', 'interviewer_name', 'feedback']):
+        raise ValidationError("Missing required fields: round_number, interviewer_name, feedback.")
+    new_interview = Interview(
+        candidate_id=candidate_id, round_number=data['round_number'],
+        interviewer_name=data.get('interviewer_name'), interview_date=data.get('interview_date'),
+        score=data.get('score'), feedback=data.get('feedback'), status="Completed"
+    )
+    db.add(new_interview)
+    db.commit()
+    return jsonify({"message": "Interview feedback added successfully.", "interview_id": new_interview.id}), 201
+
 @app.route("/api/candidates/active", methods=["GET"])
 def get_active_candidates_api():
     for hiring_service in get_hiring_service():
         candidates = hiring_service.get_active_candidates()
-        # Add email and phone_number to the response
         results = [{
-            "id": c.id, 
-            "name": f"{c.first_name or ''} {c.last_name or ''}".strip(), 
+            "id": c.id, "name": f"{c.first_name or ''} {c.last_name or ''}".strip(), 
             "status": c.current_status, 
             "job_title": c.job_description.title if c.job_description else "N/A",
-            "email": c.email,
-            "phone_number": c.phone_number
+            "email": c.email, "phone_number": c.phone_number
         } for c in candidates]
         return jsonify(results), 200
-    
+
 @app.route("/api/messages/bulk_send", methods=["POST"])
 def bulk_send_messages():
     data = request.json
-    candidate_ids = data.get('candidate_ids')
-    channel = data.get('channel')
-    subject = data.get('subject')
-    message = data.get('message')
-
+    candidate_ids, channel, subject, message = data.get('candidate_ids'), data.get('channel'), data.get('subject'), data.get('message')
     if not all([candidate_ids, channel, message]):
         raise ValidationError("Missing 'candidate_ids', 'channel', or 'message'.")
     if channel == 'email' and not subject:
         raise ValidationError("Missing 'subject' for email channel.")
-    
     for hiring_service in get_hiring_service():
         result = hiring_service.send_bulk_notification(
             candidate_ids, channel, subject, message, "HR"

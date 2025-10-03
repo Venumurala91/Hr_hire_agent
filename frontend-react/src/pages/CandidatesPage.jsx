@@ -3,29 +3,22 @@ import { Modal } from '../components/Modal';
 import { StageTracker } from '../components/StageTracker';
 import { Pagination } from '../components/Pagination';
 
-const ITEMS_PER_PAGE = 10; // Define how many candidates to show per page
+const ITEMS_PER_PAGE = 10;
 
 export function CandidatesPage({ apiFetch, showToast, STATUS_OPTIONS, PIPELINE_STAGES, globalSearchTerm, activePageProp, setActivePage }) {
     const [candidates, setCandidates] = useState([]);
     const [jobs, setJobs] = useState([]);
     const [counts, setCounts] = useState({});
     const [filters, setFilters] = useState({ job_id: '', status: '' });
-    
     const [activeTab, setActiveTab] = useState('All');
-    
     const [selectedIds, setSelectedIds] = useState(new Set());
-    
     const [currentPage, setCurrentPage] = useState(1);
     const [totalCandidates, setTotalCandidates] = useState(0);
-
     const [currentCandidate, setCurrentCandidate] = useState(null);
     const [isUpdateModalOpen, setUpdateModalOpen] = useState(false);
-    const [isViewProfileModalOpen, setViewProfileModalOpen] = useState(false);
     const [isContactModalOpen, setContactModalOpen] = useState(false);
     const [actionMenu, setActionMenu] = useState({ visible: false, x: 0, y: 0, candidate: null });
-    
     const [isUploading, setIsUploading] = useState(false);
-
     const selectAllCheckboxRef = useRef();
 
     const fetchData = useCallback(async () => {
@@ -52,7 +45,7 @@ export function CandidatesPage({ apiFetch, showToast, STATUS_OPTIONS, PIPELINE_S
             setJobs(jobsData);
         } catch (error) { 
             console.error("Failed to fetch page data");
-            setCandidates([]); // Reset candidates on error
+            setCandidates([]);
             setTotalCandidates(0);
         }
     }, [filters, activeTab, globalSearchTerm, currentPage, apiFetch]);
@@ -133,7 +126,7 @@ export function CandidatesPage({ apiFetch, showToast, STATUS_OPTIONS, PIPELINE_S
                     body: JSON.stringify({ candidate_ids: [...selectedIds] })
                 });
                 setSelectedIds(new Set());
-                fetchData(); // Refetch current page
+                fetchData();
             } catch (error) {}
         }
     };
@@ -147,14 +140,13 @@ export function CandidatesPage({ apiFetch, showToast, STATUS_OPTIONS, PIPELINE_S
     const handleActionClick = async (action) => {
         const { candidate } = actionMenu;
         setActionMenu({ visible: false }); 
+        
+        // This is now handled by the link click, but we keep the modal logic for other actions
         if (action === 'view-profile') {
-            try {
-                const fullCandidateData = await apiFetch(`/api/candidates/${candidate.id}`);
-                setCurrentCandidate(fullCandidateData);
-                setViewProfileModalOpen(true);
-            } catch (error) { showToast('Could not load candidate profile.', 'error'); }
+            setActivePage(`candidates/${candidate.id}`);
             return;
         }
+        
         setCurrentCandidate(candidate);
         if (action === 'update-status') setUpdateModalOpen(true);
         if (action === 'contact') setContactModalOpen(true);
@@ -238,7 +230,12 @@ export function CandidatesPage({ apiFetch, showToast, STATUS_OPTIONS, PIPELINE_S
                                 return (
                                 <tr key={c.id} className={selectedIds.has(c.id) ? 'selected' : ''}>
                                     <td className="text-center"><input type="checkbox" checked={selectedIds.has(c.id)} onChange={() => handleSelect(c.id)}/></td>
-                                    <td><div className="candidate-name-cell"><div className="candidate-avatar">{initials || '??'}</div><div className="candidate-info"><p className="name">{`${c.first_name} ${c.last_name}`.trim()}</p><span className="email">{c.email}</span></div></div></td>
+                                    <td><div className="candidate-name-cell"><div className="candidate-avatar">{initials || '??'}</div><div className="candidate-info">
+                                        <a href="#" className="name" onClick={(e) => { e.preventDefault(); setActivePage(`candidates/${c.id}`); }}>
+                                            {`${c.first_name} ${c.last_name}`.trim()}
+                                        </a>
+                                        <span className="email">{c.email}</span>
+                                    </div></div></td>
                                     <td>{c.job_title}</td>
                                     <td className="text-center"><div className="ats-score-cell" style={{justifyContent: 'center'}}><div className="ats-progress"><div className="ats-progress-bar" style={{width: `${c.ats_score || 0}%`}}></div></div><span className="ats-score-value">{c.ats_score ? `${Math.round(c.ats_score)}%` : 'N/A'}</span></div></td>
                                     <td>{c.phone_number?.replace('whatsapp:', '') || 'N/A'}</td>
@@ -284,60 +281,6 @@ export function CandidatesPage({ apiFetch, showToast, STATUS_OPTIONS, PIPELINE_S
                     <div className="form-group"><label>Comments (Optional)</label><textarea name="comments" rows="3"></textarea></div>
                     <div className="modal-footer"><button type="button" className="btn btn-secondary" onClick={() => setUpdateModalOpen(false)}>Cancel</button><button type="submit" className="btn btn-primary">Update Status</button></div>
                 </form>
-            </Modal>
-
-            <Modal isOpen={isViewProfileModalOpen} onClose={() => setViewProfileModalOpen(false)} size="large">
-                <div className="modal-header">
-                    <h2>{currentCandidate?.name || 'Candidate Profile'}</h2>
-                    <button className="close-btn" onClick={() => setViewProfileModalOpen(false)}>&times;</button>
-                </div>
-                {currentCandidate && <>
-                    <StageTracker currentStatus={currentCandidate.status} statusHistory={currentCandidate.status_history || []} />
-
-                    <div className="profile-grid">
-                        <div className="profile-details">
-                            <p><strong>Email:</strong> <span>{currentCandidate.email}</span></p>
-                            <p><strong>Phone:</strong> <span>{currentCandidate.phone_number?.replace('whatsapp:', '') || 'N/A'}</span></p>
-                            <p><strong>Education:</strong> <span>{currentCandidate.ai_analysis?.education_summary || 'N/A'}</span></p>
-                            <p><strong>Experience:</strong> <span>{currentCandidate.ai_analysis?.years_of_experience || '0'} years</span></p>
-                        </div>
-                        <div className="profile-score">
-                            <h4>ATS Score</h4>
-                            <div className="score-circle">{Math.round(currentCandidate.ats_score || 0)}%</div>
-                        </div>
-                    </div>
-
-                    <div className="profile-summary">
-                        <h4>AI Shortlisting Summary</h4>
-                        <p>{currentCandidate.ai_analysis?.summary_reason || 'No AI summary available.'}</p>
-                    </div>
-
-                    <div className="profile-skills">
-                        <h4>Matched Skills</h4>
-                        <div className="skills-container">
-                            {currentCandidate.ai_analysis?.matched_skills?.length > 0
-                                ? currentCandidate.ai_analysis.matched_skills.map(skill => <span key={skill} className="skill-pill">{skill}</span>)
-                                : <p>No specific skills identified.</p>
-                            }
-                        </div>
-                    </div>
-
-                    <div className="modal-footer" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-                        <div>
-                            {currentCandidate.resume_path && (
-                                <a 
-                                    href={`/${currentCandidate.resume_path}`} 
-                                    target="_blank" 
-                                    rel="noopener noreferrer" 
-                                    className="btn btn-secondary"
-                                >
-                                    View Resume
-                                </a>
-                            )}
-                        </div>
-                        <button type="button" className="btn btn-secondary" onClick={() => setViewProfileModalOpen(false)}>Close</button>
-                    </div>
-                </>}
             </Modal>
             
             <Modal isOpen={isContactModalOpen} onClose={() => setContactModalOpen(false)}>

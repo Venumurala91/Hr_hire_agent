@@ -6,11 +6,18 @@ export default defineConfig({
   plugins: [react()],
   server: {
     proxy: {
-      // Proxy /api requests to our Flask backend
+      // Proxy API requests to the Flask backend
       '/api': {
         target: 'http://127.0.0.1:5000',
         changeOrigin: true,
       },
+      // === THIS IS THE NEW RULE THAT FIXES THE PROBLEM ===
+      // Proxy resume file requests to the Flask backend
+      '/uploads': {
+        target: 'http://127.0.0.1:5000',
+        changeOrigin: true,
+      },
+      // ===================================================
     },
   },
 })
