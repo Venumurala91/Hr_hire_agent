@@ -89,7 +89,7 @@ body { font-family: 'Inter', sans-serif; background-color: var(--background-colo
 .card-icon.purple { background-color: var(--purple-light); color: var(--purple-color); }
 .card-content .card-title { font-size: 14px; font-weight: 500; color: var(--text-secondary); }
 .card-content .card-value { display: block; font-size: 2rem; font-weight: 700; margin-top: 4px; line-height: 1; }
-.dashboard-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 24px; flex-grow: 1; }
+.dashboard-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; flex-grow: 1; height: 70vh;}
 .jobs-list-section { padding: 0; display: flex; flex-direction: column; overflow: hidden; } 
 .jobs-list-header { padding: 20px 24px; margin-bottom: 0; border-bottom: 1px solid var(--border-color); }
 .job-actions-bar { display: flex; align-items: center; gap: 12px; }
