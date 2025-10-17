@@ -1,0 +1,43 @@
+# Application Configuration
+
+# Database settings
+database_url: "${DATABASE_URL}"
+
+# Google Gemini API key
+gemini_api_key: "${GEMINI_API_KEY}"
+
+# Twilio (WhatsApp) settings
+twilio_account_sid: "${TWILIO_ACCOUNT_SID}"
+twilio_auth_token: "${TWILIO_AUTH_TOKEN}"
+twilio_whatsapp_number: "${TWILIO_WHATSAPP_NUMBER}"
+
+# --- NEW: SMTP (Email) Settings ---
+# These should be set in your .env file for security
+smtp_server: "${SMTP_SERVER}"
+smtp_port: ${SMTP_PORT}
+smtp_sender_email: "${SMTP_SENDER_EMAIL}"
+smtp_username: "${SMTP_USERNAME}"
+smtp_password: "${SMTP_PASSWORD}"
+hr_recipient_email: "${HR_RECIPIENT_EMAIL}"
+
+# Application general settings
+app_secret_key: "your_flask_secret_key_change_in_prod"
+log_level: "INFO"
+
+# File Uploads
+resume_upload_folder: "uploads/resumes"
+jd_upload_folder: "uploads/jds"
+temp_bulk_upload_folder: "uploads/temp_bulk"
+
+# ATS Scoring Parameters
+ats_weights:
+  keyword_match: 0.3
+  skills_alignment: 0.25
+  experience_fit: 0.25
+  education_match: 0.1
+  certifications_match: 0.1
+
+# Bulk ATS Processing Settings
+ats_shortlist_threshold: 70.0
+max_workers_resume_processing: 8
+max_workers_whatsapp_sending: 5

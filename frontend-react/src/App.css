@@ -1,0 +1,78 @@
+
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Apply a smooth font antialiasing for better text rendering */
+body {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    background-color: #F8FAFC; /* Equivalent to Tailwind's bg-slate-50 */
+}
+
+/* Keyframe for the animated progress bar stripes */
+@keyframes progress-animation {
+  from {
+    background-position: 40px 0;
+  }
+  to {
+    background-position: 0 0;
+  }
+}
+
+/* Style for the animated progress bar using @apply to mix in Tailwind utilities */
+.progress-bar.animated .progress-bar-fill {
+  @apply w-full bg-primary;
+  background-image: linear-gradient(
+    45deg,
+    rgba(255, 255, 255, 0.2) 25%,
+    transparent 25%,
+    transparent 50%,
+    rgba(255, 255, 255, 0.2) 50%,
+    rgba(255, 255, 255, 0.2) 75%,
+    transparent 75%,
+    transparent
+  );
+  background-size: 40px 40px;
+  animation: progress-animation 2s linear infinite;
+}
+
+/* Remove default spinner from number inputs for a cleaner UI */
+input[type='number']::-webkit-inner-spin-button,
+input[type='number']::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type='number'] {
+  -moz-appearance: textfield;
+}
+
+/* Custom scrollbar for a more modern look */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #cbd5e1; /* slate-300 */
+  border-radius: 10px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8; /* slate-400 */
+}
+
+
+
+.login-bg-globe {
+  background-image: url('/background-globe.png');
+  background-repeat: no-repeat;
+  background-position: center center; /* centers the image */
+  background-size: cover; /* makes it fill the entire page */
+  background-attachment: fixed; /* optional: gives a parallax-like effect */
+  height: 100vh; /* ensures it covers the full viewport height */
+  width: 100%; /* full width */
+}
+
