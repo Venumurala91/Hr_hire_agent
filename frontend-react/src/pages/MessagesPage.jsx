@@ -1,7 +1,17 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Modal } from '../components/Modal';
 
-export function MessagesPage({ apiFetch, showToast, MESSAGE_TEMPLATES }) {
+// Reusable Button Component
+const Button = ({ variant = 'primary', children, ...props }) => {
+    const baseClasses = "inline-flex items-center justify-center gap-2 px-4 py-2 rounded-md font-semibold text-sm transition-colors disabled:opacity-70 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary";
+    const variants = {
+        primary: "bg-primary text-white hover:bg-primary-dark",
+        secondary: "bg-white text-slate-800 border border-slate-300 hover:bg-slate-50",
+    };
+    return <button className={`${baseClasses} ${variants[variant]}`} {...props}>{children}</button>;
+};
+
+export function MessagesPage({ apiFetch, showToast, MESSAGE_TEMPLATES, statusConfig }) {
     const [allCandidates, setAllCandidates] = useState([]);
     const [groupedByStatus, setGroupedByStatus] = useState({});
     const [activeStatus, setActiveStatus] = useState(null);
@@ -12,15 +22,12 @@ export function MessagesPage({ apiFetch, showToast, MESSAGE_TEMPLATES }) {
     const [selectedTemplate, setSelectedTemplate] = useState('');
     const [isPreviewModalOpen, setPreviewModalOpen] = useState(false);
 
+    const { all_status_options = [] } = statusConfig || {};
+
     const fetchData = useCallback(() => {
         apiFetch('/api/candidates/active').then(data => {
             setAllCandidates(data);
-            const groups = data.reduce((acc, c) => {
-                const status = c.status;
-                if (!acc[status]) acc[status] = [];
-                acc[status].push(c);
-                return acc;
-            }, {});
+            const groups = data.reduce((acc, c) => { const status = c.status; if (!acc[status]) acc[status] = []; acc[status].push(c); return acc; }, {});
             setGroupedByStatus(groups);
         });
     }, [apiFetch]);
@@ -28,21 +35,17 @@ export function MessagesPage({ apiFetch, showToast, MESSAGE_TEMPLATES }) {
     useEffect(() => { fetchData(); }, [fetchData]);
 
     const handleGroupClick = (status) => {
-        setActiveStatus(status);
-        setSelectedIds(new Set());
+        setActiveStatus(status); setSelectedIds(new Set());
         const templateKey = Object.keys(MESSAGE_TEMPLATES).find(k => k === status) || '';
         setSelectedTemplate(templateKey);
         const template = MESSAGE_TEMPLATES[templateKey] || { subject: '', body: '' };
-        setSubject(template.subject);
-        setMessage(template.body);
+        setSubject(template.subject); setMessage(template.body);
     };
     
     const handleTemplateChange = (e) => {
-        const key = e.target.value;
-        setSelectedTemplate(key);
+        const key = e.target.value; setSelectedTemplate(key);
         const template = MESSAGE_TEMPLATES[key] || { subject: '', body: '' };
-        setSubject(template.subject);
-        setMessage(template.body);
+        setSubject(template.subject); setMessage(template.body);
     };
 
     const handleSelectAll = (e) => {
@@ -51,120 +54,77 @@ export function MessagesPage({ apiFetch, showToast, MESSAGE_TEMPLATES }) {
         else setSelectedIds(new Set());
     };
 
-    const handleSelectCandidate = (id) => {
+    const handleSelectCandidate = (id, isChecked) => {
         const newSelection = new Set(selectedIds);
-        if (newSelection.has(id)) newSelection.delete(id);
-        else newSelection.add(id);
+        if (isChecked) { newSelection.add(id); } else { newSelection.delete(id); }
         setSelectedIds(newSelection);
     };
 
     const handleSubmit = async (e) => {
-        e.preventDefault();
-        if (selectedIds.size === 0) return showToast('Please select at least one candidate.', 'error');
+        e.preventDefault(); if (selectedIds.size === 0) return showToast('Please select at least one candidate.', 'error');
         try {
-            await apiFetch('/api/messages/bulk_send', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ candidate_ids: [...selectedIds], channel: activeChannel, subject, message })
-            });
+            await apiFetch('/api/messages/bulk_send', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ candidate_ids: [...selectedIds], channel: activeChannel, subject, message }) });
             setSelectedIds(new Set());
         } catch (error) {}
     };
 
     const candidatesInGroup = groupedByStatus[activeStatus] || [];
-    
     const sampleCandidate = allCandidates.find(c => selectedIds.has(c.id)) || candidatesInGroup[0] || { name: 'John Doe', job_title: 'Sample Role' };
     const personalizedSubject = subject.replace(/{candidate_name}/g, sampleCandidate.name).replace(/{job_title}/g, sampleCandidate.job_title);
     const personalizedBody = message.replace(/{candidate_name}/g, sampleCandidate.name).replace(/{job_title}/g, sampleCandidate.job_title);
 
 
     return (
-        <>
-        <div id="messages-view" className="messages-container-grid">
-            <div className="status-groups-sidebar">
-                <div className="sidebar-header"><h3>Recipients by Status</h3></div>
-                <div className="status-groups-nav">
-                    {Object.keys(groupedByStatus).sort().map(status => (
-                        <div key={status} className={`status-group-item ${status === activeStatus ? 'active' : ''}`} onClick={() => handleGroupClick(status)}>
-                            <span className="group-title">{status}</span>
-                            <span className="group-count">{groupedByStatus[status].length}</span>
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-0 bg-white rounded-lg border border-slate-200 shadow-sm h-[calc(100vh-150px)]">
+            <div className="md:col-span-3 border-r border-slate-200 flex flex-col">
+                <div className="p-4 border-b border-slate-200"><h3 className="font-semibold text-slate-800">Recipients by Status</h3></div>
+                <div className="overflow-y-auto custom-scrollbar">
+                    {all_status_options.filter(status => groupedByStatus[status]).map(status => (
+                        <div key={status} className={`flex justify-between items-center px-4 py-3 cursor-pointer border-l-4 ${status === activeStatus ? 'border-primary bg-primary-light' : 'border-transparent hover:bg-slate-50'}`} onClick={() => handleGroupClick(status)}>
+                            <span className={`font-semibold text-sm ${status === activeStatus ? 'text-primary-dark' : 'text-slate-700'}`}>{status}</span>
+                            <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${status === activeStatus ? 'bg-primary text-white' : 'bg-slate-200 text-slate-600'}`}>{groupedByStatus[status].length}</span>
                         </div>
                     ))}
                 </div>
             </div>
-            <div className="candidate-list-pane">
-                {!activeStatus ? ( <div className="workspace-placeholder"><p>Select a group to see candidates</p></div> ) : (
-                    <div id="candidate-list-content">
-                        <div className="candidate-list-header">
-                            <h2>{activeStatus}</h2>
-                            <label><input type="checkbox" onChange={handleSelectAll} checked={selectedIds.size === candidatesInGroup.length && candidatesInGroup.length > 0} /> Select All</label>
-                        </div>
-                        <div className="candidate-list-body">
+            <div className="md:col-span-4 border-r border-slate-200 flex flex-col">
+                {!activeStatus ? ( <div className="flex-1 flex items-center justify-center text-slate-500"><p>Select a group to see candidates</p></div> ) : (
+                    <>
+                        <div className="p-4 border-b border-slate-200 flex justify-between items-center"><h2 className="font-bold text-lg text-slate-800">{activeStatus}</h2><label className="flex items-center gap-2 text-sm font-medium text-slate-600"><input type="checkbox" onChange={handleSelectAll} checked={selectedIds.size === candidatesInGroup.length && candidatesInGroup.length > 0} className="rounded border-slate-300 text-primary focus:ring-primary-light" /> Select All</label></div>
+                        <div className="overflow-y-auto custom-scrollbar flex-1">
                             {candidatesInGroup.map(c => {
                                 const initials = ((c.name.split(' ')[0]?.[0] || '') + (c.name.split(' ')[1]?.[0] || '')).toUpperCase();
-                                // === THIS IS THE UPDATED JSX STRUCTURE ===
                                 return (
-                                <div key={c.id} className={`candidate-item ${selectedIds.has(c.id) ? 'selected' : ''}`} onClick={() => handleSelectCandidate(c.id)}>
-                                    <input type="checkbox" checked={selectedIds.has(c.id)} readOnly/>
-                                    <div className="candidate-avatar">{initials}</div>
-                                    <div className="info">
-                                        <p className="name">{c.name}</p>
-                                        <span className="job">{c.job_title}</span>
-                                        <div className="contact-details">
-                                            {c.email && (
-                                                <span className="contact-item">
-                                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
-                                                    {c.email}
-                                                </span>
-                                            )}
-                                            {c.phone_number && (
-                                                <span className="contact-item">
-                                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
-                                                    {c.phone_number.replace('whatsapp:', '')}
-                                                </span>
-                                            )}
+                                <div key={c.id} className={`flex items-start gap-3 p-4 border-b border-slate-200 ${selectedIds.has(c.id) ? 'bg-primary-light' : ''}`}>
+                                    <input type="checkbox" checked={selectedIds.has(c.id)} onChange={(e) => handleSelectCandidate(c.id, e.target.checked)} className="mt-1 rounded border-slate-300 text-primary focus:ring-primary-light" />
+                                    <div className="w-9 h-9 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center font-bold text-xs shrink-0">{initials}</div>
+                                    <div className="flex-1"><p className="font-semibold text-slate-800">{c.name}</p><p className="text-xs text-slate-500">{c.job_title}</p>
+                                        <div className="text-xs text-slate-500 mt-2 space-y-1">
+                                            {c.email && (<div className="flex items-center gap-2"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg><span>{c.email}</span></div>)}
+                                            {c.phone_number && (<div className="flex items-center gap-2"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg><span>{c.phone_number.replace('whatsapp:', '')}</span></div>)}
                                         </div>
                                     </div>
                                 </div>
                             )})}
                         </div>
-                    </div>
+                    </>
                 )}
             </div>
-            <div className="message-composer-pane">
-                <div className="composer-header"><h3>Compose Message</h3><button className="btn btn-secondary" onClick={() => setPreviewModalOpen(true)}>Preview</button></div>
-                <form className="composer-form" onSubmit={handleSubmit}>
-                    <div className="composer-form-content">
-                        <div className="channel-toggle">
-                            <button type="button" className={`toggle-btn ${activeChannel === 'email' ? 'active' : ''}`} onClick={() => setActiveChannel('email')}>Email</button>
-                            <button type="button" className={`toggle-btn ${activeChannel === 'whatsapp' ? 'active' : ''}`} onClick={() => setActiveChannel('whatsapp')}>WhatsApp</button>
-                        </div>
-                        <div className="form-group">
-                            <label>Use a Template</label>
-                            <select value={selectedTemplate} onChange={handleTemplateChange}>
-                                <option value="">-- No Template --</option>
-                                {Object.keys(MESSAGE_TEMPLATES).map(key => <option key={key} value={key}>{key}</option>)}
-                            </select>
-                        </div>
-                        {activeChannel === 'email' && <div className="form-group"><label>Subject</label><input type="text" value={subject} onChange={e => setSubject(e.target.value)} /></div>}
-                        <div className="form-group">
-                            <label>Message</label>
-                            <textarea value={message} onChange={e => setMessage(e.target.value)} rows="8"></textarea>
-                            <p className="form-hint">Placeholders: {`{candidate_name}`}, {`{job_title}`}</p>
-                        </div>
+            <div className="md:col-span-5 flex flex-col bg-slate-50 rounded-r-lg">
+                <div className="p-4 border-b border-slate-200 flex justify-between items-center"><h3 className="font-semibold text-slate-800">Compose Message</h3><Button variant="secondary" onClick={() => setPreviewModalOpen(true)}>Preview</Button></div>
+                <form className="flex-1 flex flex-col" onSubmit={handleSubmit}>
+                    <div className="p-4 space-y-4 overflow-y-auto flex-1 custom-scrollbar">
+                        <div className="p-1 bg-slate-200 rounded-lg flex"><button type="button" className={`flex-1 py-1.5 text-sm font-semibold rounded-md transition-all ${activeChannel === 'email' ? 'bg-white shadow-sm' : ''}`} onClick={() => setActiveChannel('email')}>Email</button><button type="button" className={`flex-1 py-1.5 text-sm font-semibold rounded-md transition-all ${activeChannel === 'whatsapp' ? 'bg-white shadow-sm' : ''}`} onClick={() => setActiveChannel('whatsapp')}>WhatsApp</button></div>
+                        <div><label className="text-sm font-medium text-slate-600 mb-1 block">Use a Template</label><select value={selectedTemplate} onChange={handleTemplateChange} className="w-full px-3 py-2 border border-slate-300 rounded-md bg-white focus:ring-2 focus:ring-primary-light focus:border-primary outline-none"><option value="">-- No Template --</option>{Object.keys(MESSAGE_TEMPLATES).map(key => <option key={key} value={key}>{key}</option>)}</select></div>
+                        {activeChannel === 'email' && <div><label className="text-sm font-medium text-slate-600 mb-1 block">Subject</label><input type="text" value={subject} onChange={e => setSubject(e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-primary-light focus:border-primary outline-none" /></div>}
+                        <div><label className="text-sm font-medium text-slate-600 mb-1 block">Message</label><textarea value={message} onChange={e => setMessage(e.target.value)} rows="8" className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-primary-light focus:border-primary outline-none"></textarea><p className="text-xs text-slate-500 mt-1">Placeholders: {`{candidate_name}`}, {`{job_title}`}</p></div>
                     </div>
-                    <div className="composer-footer">
-                        <span>{selectedIds.size} candidate(s) selected</span>
-                        <button type="submit" className="btn btn-primary">Send Message</button>
-                    </div>
+                    <div className="p-4 border-t border-slate-200 flex justify-between items-center"><span className="text-sm font-medium text-slate-500">{selectedIds.size} candidate(s) selected</span><Button type="submit">Send Message</Button></div>
                 </form>
             </div>
+            <Modal isOpen={isPreviewModalOpen} onClose={() => setPreviewModalOpen(false)}>
+                <div className="p-6"><div className="flex justify-between items-start mb-4"><h2 className="text-xl font-bold text-slate-800">Preview</h2><button onClick={() => setPreviewModalOpen(false)} className="text-slate-500 hover:text-slate-800 text-2xl leading-none">&times;</button></div>{activeChannel === 'email' && <div className="pb-4 mb-4 border-b border-slate-200"><strong>Subject:</strong> {personalizedSubject}</div>}<div className="text-slate-600" dangerouslySetInnerHTML={{ __html: personalizedBody.replace(/\n/g, '<br />') }}></div></div>
+            </Modal>
         </div>
-        <Modal isOpen={isPreviewModalOpen} onClose={() => setPreviewModalOpen(false)}>
-             <div className="modal-header"><h2>Preview</h2><button className="close-btn" onClick={() => setPreviewModalOpen(false)}>&times;</button></div>
-             {activeChannel === 'email' && <div className="preview-subject"><strong>Subject:</strong> {personalizedSubject}</div>}
-             <div className="preview-body" dangerouslySetInnerHTML={{ __html: personalizedBody.replace(/\n/g, '<br />') }}></div>
-        </Modal>
-        </>
     );
 }
