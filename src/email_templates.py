@@ -1,4 +1,9 @@
-# --- Centralized Email Templates for Candidate Status Updates ---
+# =============================================================================
+# HR-HIRE-AGENT/src/email_templates.py
+# =============================================================================
+
+# Centralized Email Templates for Candidate Status Updates
+# The keys here should match the status descriptions in model/status_constants.py
 
 EMAIL_TEMPLATES = {
     "ATS Shortlisted": {
@@ -9,6 +14,18 @@ EMAIL_TEMPLATES = {
         <p>Thank you for your interest in the <strong>{job_title}</strong> position at our company.</p>
         <p>We are pleased to inform you that your profile has been shortlisted for further review. Our hiring team is currently evaluating all applications, and we will get in touch with you regarding the next steps if your profile is selected for an interview.</p>
         <p>We appreciate your patience.</p>
+        <p>Best regards,<br>The Hiring Team</p>
+        </body></html>
+        """
+    },
+    "Resume declined": {
+        "subject": "Update on your application for {job_title}",
+        "body": """
+        <html><body>
+        <p>Dear {candidate_name},</p>
+        <p>Thank you for applying for the <strong>{job_title}</strong> position.</p>
+        <p>We received a large number of applications, and after a careful review of your profile, we have decided not to move forward at this time. This decision is not a reflection of your qualifications, but rather the specific requirements of this role.</p>
+        <p>We encourage you to visit our careers page for future openings and wish you the best in your job search.</p>
         <p>Best regards,<br>The Hiring Team</p>
         </body></html>
         """
@@ -49,6 +66,17 @@ EMAIL_TEMPLATES = {
         </body></html>
         """
     },
+    "Document Verification Pending": {
+        "subject": "Request for Documents for the {job_title} Position",
+        "body": """
+        <html><body>
+        <p>Dear {candidate_name},</p>
+        <p>Congratulations on progressing to the final stages for the <strong>{job_title}</strong> position. To proceed, we require a few documents for verification.</p>
+        <p>Our HR team will send you a separate email with a list of the required documents and instructions on how to submit them.</p>
+        <p>Best regards,<br>The Hiring Team</p>
+        </body></html>
+        """
+    },
     "Offer Letter Issued": {
         "subject": "Job Offer for the {job_title} Position!",
         "body": """
@@ -72,18 +100,5 @@ EMAIL_TEMPLATES = {
         <p>Best regards,<br>The Hiring Team</p>
         </body></html>
         """
-    },
-    "Resume declined": {
-        "subject": "Update on your application for {job_title}",
-        "body": """
-        <html><body>
-        <p>Dear {candidate_name},</p>
-        <p>Thank you for applying for the <strong>{job_title}</strong> position.</p>
-        <p>We received a large number of applications, and after a careful review of your profile, we have decided not to move forward at this time. This decision is not a reflection of your qualifications, but rather the specific requirements of this role.</p>
-        <p>We encourage you to visit our careers page for future openings and wish you the best in your job search.</p>
-        <p>Best regards,<br>The Hiring Team</p>
-        </body></html>
-        """
     }
-    # You can continue to add a template for every other status here
 }

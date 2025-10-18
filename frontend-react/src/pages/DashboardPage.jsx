@@ -6,14 +6,21 @@ import { Doughnut } from 'react-chartjs-2';
 
 ChartJS.register(ArcElement, Tooltip, Legend);
 
-// Reusable Button Component
+// NEW: A self-contained loader component for the dashboard
+const DashboardLoader = () => (
+    <div className="flex flex-col justify-center items-center h-full min-h-[500px] text-center">
+        <svg className="animate-spin h-10 w-10 text-primary mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+        <p className="text-lg font-semibold text-slate-600">Loading Dashboard...</p>
+        <p className="text-slate-500">Connecting and fetching the latest data.</p>
+    </div>
+);
+
 const Button = ({ variant = 'primary', children, ...props }) => {
     const baseClasses = "inline-flex items-center justify-center gap-2 px-4 py-2 rounded-md font-semibold text-sm transition-colors disabled:opacity-70 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary";
-    const variants = {
-        primary: "bg-primary text-white hover:bg-primary-dark",
-        secondary: "bg-white text-slate-800 border border-slate-300 hover:bg-slate-50",
-        danger: "bg-red-600 text-white hover:bg-red-700",
-    };
+    const variants = { primary: "bg-primary text-white hover:bg-primary-dark", secondary: "bg-white text-slate-800 border border-slate-300 hover:bg-slate-50", danger: "bg-red-600 text-white hover:bg-red-700", };
     return <button className={`${baseClasses} ${variants[variant]}`} {...props}>{children}</button>;
 };
 
@@ -28,54 +35,48 @@ export function DashboardPage({ refreshTrigger, apiFetch, formatDate, showToast 
     const [viewJobModal, setViewJobModal] = useState({ isOpen: false, job: null, isEditing: false });
     const selectAllCheckboxRef = useRef();
 
+    // NEW: Loading state for the page
+    const [isLoading, setIsLoading] = useState(true);
+
     const fetchDashboardData = useCallback(async () => {
+        setIsLoading(true); // Set loading to true when fetching starts
         try {
-            const [statsData, jobsData, distributionData] = await Promise.all([
-                apiFetch('/api/dashboard/stats'),
-                apiFetch('/api/jobs'),
-                apiFetch('/api/candidates/distribution')
+            const [statsData, jobsData, distributionData] = await Promise.all([ 
+                apiFetch('/api/dashboard/stats'), 
+                apiFetch('/api/jobs'), 
+                apiFetch('/api/candidates/distribution') 
             ]);
-            setStats(statsData); setAllJobs(jobsData); setFilteredJobs(jobsData);
+            setStats(statsData); 
+            setAllJobs(jobsData); 
+            setFilteredJobs(jobsData);
             const colors = ['#3B82F6', '#F59E0B', '#10B981', '#8B5CF6', '#EF4444'];
-            setChartData({
-                labels: distributionData.labels,
-                datasets: [{ data: distributionData.data, backgroundColor: colors, borderColor: '#FFFFFF', borderWidth: 2 }]
-            });
-        } catch (error) { console.error("Failed to load dashboard data"); }
+            setChartData({ labels: distributionData.labels, datasets: [{ data: distributionData.data, backgroundColor: colors, borderColor: '#FFFFFF', borderWidth: 2 }] });
+        } catch (error) { 
+            console.error("Failed to load dashboard data"); 
+        } finally {
+            setIsLoading(false); // Set loading to false when fetching completes (success or fail)
+        }
     }, [apiFetch]);
 
     useEffect(() => { fetchDashboardData(); }, [fetchDashboardData, refreshTrigger]);
+    
+    // All other useEffects and handlers remain unchanged
     useEffect(() => { const filtered = allJobs.filter(job => job.title.toLowerCase().includes(jobSearchTerm.toLowerCase())); setFilteredJobs(filtered); }, [jobSearchTerm, allJobs]);
-    useEffect(() => {
-        const handleOutsideClick = (e) => { if (actionMenu.visible && !e.target.closest('.action-dropdown')) { setActionMenu({ visible: false }); } };
-        document.addEventListener('click', handleOutsideClick);
-        return () => document.removeEventListener('click', handleOutsideClick);
-    }, [actionMenu.visible]);
-    useEffect(() => {
-        if (selectAllCheckboxRef.current) {
-            const allVisibleIds = new Set(filteredJobs.map(j => j.id));
-            const selectedVisibleCount = [...selectedJobIds].filter(id => allVisibleIds.has(id)).length;
-            selectAllCheckboxRef.current.checked = allVisibleIds.size > 0 && selectedVisibleCount === allVisibleIds.size;
-            selectAllCheckboxRef.current.indeterminate = selectedVisibleCount > 0 && selectedVisibleCount < allVisibleIds.size;
-        }
-    }, [selectedJobIds, filteredJobs]);
+    useEffect(() => { const handleOutsideClick = (e) => { if (actionMenu.visible && !e.target.closest('.action-dropdown')) { setActionMenu({ visible: false }); } }; document.addEventListener('click', handleOutsideClick); return () => document.removeEventListener('click', handleOutsideClick); }, [actionMenu.visible]);
+    useEffect(() => { if (selectAllCheckboxRef.current) { const allVisibleIds = new Set(filteredJobs.map(j => j.id)); const selectedVisibleCount = [...selectedJobIds].filter(id => allVisibleIds.has(id)).length; selectAllCheckboxRef.current.checked = allVisibleIds.size > 0 && selectedVisibleCount === allVisibleIds.size; selectAllCheckboxRef.current.indeterminate = selectedVisibleCount > 0 && selectedVisibleCount < allVisibleIds.size; } }, [selectedJobIds, filteredJobs]);
 
+    // All other handler functions are unchanged
     const handleSelectJob = (jobId) => { setSelectedJobIds(prev => { const newSet = new Set(prev); if (newSet.has(jobId)) newSet.delete(jobId); else newSet.add(jobId); return newSet; }); };
     const handleSelectAllJobs = (e) => { const visibleJobIds = filteredJobs.map(j => j.id); if (e.target.checked) { setSelectedJobIds(prev => new Set([...prev, ...visibleJobIds])); } else { setSelectedJobIds(prev => { const newSet = new Set(prev); visibleJobIds.forEach(id => newSet.delete(id)); return newSet; }); } };
     const handleDeleteSelectedJobs = async () => { if (selectedJobIds.size === 0) return; if (window.confirm(`Are you sure you want to delete ${selectedJobIds.size} job(s)?`)) { try { await apiFetch('/api/jobs/bulk', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ job_ids: [...selectedJobIds] }) }); setSelectedJobIds(new Set()); fetchDashboardData(); } catch (error) {} } };
     const openActionMenu = (e, jobId) => { e.stopPropagation(); const rect = e.target.getBoundingClientRect(); setActionMenu({ visible: true, x: rect.right, y: rect.bottom + window.scrollY, jobId }); };
+    const handleJobAction = async (action) => { const { jobId } = actionMenu; setActionMenu({ visible: false }); if (action === 'view') { try { const fullJobData = await apiFetch(`/api/jobs/${jobId}`); setViewJobModal({ isOpen: true, job: fullJobData, isEditing: false }); } catch (error) {} } else if (action === 'delete') { if (window.confirm('Are you sure you want to delete this job?')) { try { await apiFetch('/api/jobs/bulk', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ job_ids: [jobId] }) }); fetchDashboardData(); } catch (error) {} } } };
+    const handleUpdateJob = async (e) => { e.preventDefault(); const formData = new FormData(e.target); const updatedData = { title: formData.get('title'), description_text: formData.get('description_text'), location: formData.get('location'), salary_range: formData.get('salary_range') }; try { await apiFetch(`/api/jobs/${viewJobModal.job.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(updatedData) }); setViewJobModal({ isOpen: false, job: null, isEditing: false }); fetchDashboardData(); } catch(error) {} };
 
-    const handleJobAction = async (action) => {
-        const { jobId } = actionMenu; setActionMenu({ visible: false });
-        if (action === 'view') { try { const fullJobData = await apiFetch(`/api/jobs/${jobId}`); setViewJobModal({ isOpen: true, job: fullJobData, isEditing: false }); } catch (error) { showToast("Could not load job details.", "error"); } }
-        else if (action === 'delete') { if (window.confirm('Are you sure you want to delete this job?')) { try { await apiFetch('/api/jobs/bulk', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ job_ids: [jobId] }) }); fetchDashboardData(); } catch (error) {} } }
-    };
-
-    const handleUpdateJob = async (e) => {
-        e.preventDefault(); const formData = new FormData(e.target);
-        const updatedData = { title: formData.get('title'), description_text: formData.get('description_text'), location: formData.get('location'), salary_range: formData.get('salary_range') };
-        try { await apiFetch(`/api/jobs/${viewJobModal.job.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(updatedData) }); setViewJobModal({ isOpen: false, job: null, isEditing: false }); fetchDashboardData(); } catch(error) {}
-    };
+    // NEW: Conditional rendering based on isLoading state
+    if (isLoading) {
+        return <DashboardLoader />;
+    }
 
     return (
         <div className="space-y-6">
@@ -86,7 +87,6 @@ export function DashboardPage({ refreshTrigger, apiFetch, formatDate, showToast 
                 <KpiCard title="Offers Extended" value={stats.offers_extended} color="purple" icon={<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>} />
             </section>
             
-            {/* === SCROLL ONLY FOR ACTIVE JOB POSTINGS === */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <section className="lg:col-span-2 bg-white rounded-lg border border-slate-200 shadow-sm flex flex-col max-h-[calc(100vh-280px)]">
                     <div className="p-4 flex justify-between items-center border-b border-slate-200 shrink-0">
@@ -98,12 +98,33 @@ export function DashboardPage({ refreshTrigger, apiFetch, formatDate, showToast 
                         </div>
                     </div>
 
-                    {/* THIS IS THE SCROLLABLE AREA (only this scrolls) */}
                     <div className="overflow-y-auto custom-scrollbar">
                         <div className="overflow-x-auto">
                             <table className="w-full text-sm">
-                                <thead className="bg-slate-50 text-xs text-slate-500 uppercase sticky top-0"><tr><th className="px-4 py-3 w-12 text-center"><input type="checkbox" ref={selectAllCheckboxRef} onChange={handleSelectAllJobs} className="rounded border-slate-300 text-primary focus:ring-primary-light" /></th><th className="px-4 py-3">Job Title</th><th className="px-4 py-3 text-center">Candidates</th><th className="px-4 py-3">Status</th><th className="px-4 py-3">Date Posted</th><th className="px-4 py-3 text-center">Actions</th></tr></thead>
-                                <tbody>{filteredJobs.length > 0 ? filteredJobs.map(job => (<tr key={job.id} className={`border-t border-slate-200 ${selectedJobIds.has(job.id) ? 'bg-primary-light' : 'hover:bg-slate-50'}`}><td className="px-4 py-3 text-center"><input type="checkbox" checked={selectedJobIds.has(job.id)} onChange={() => handleSelectJob(job.id)} className="rounded border-slate-300 text-primary focus:ring-primary-light" /></td><td className="px-4 py-3 font-semibold text-slate-700">{job.title}</td><td className="px-4 py-3 text-center text-slate-600">{job.candidate_count}</td><td className="px-4 py-3"><div className="flex justify-center"><span className="px-2.5 py-0.5 rounded-full text-xs font-semibold inline-flex items-center gap-1.5 bg-green-100 text-green-700"><span className="w-1.5 h-1.5 bg-green-500 rounded-full"></span>Active</span></div></td><td className="px-4 py-3 text-slate-600">{formatDate(job.created_at)}</td><td className="px-4 py-3 text-center"><button onClick={(e) => openActionMenu(e, job.id)} className="p-1.5 text-slate-500 hover:bg-slate-200 rounded-full"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1"></circle><circle cx="12" cy="5" r="1"></circle><circle cx="12" cy="19" r="1"></circle></svg></button></td></tr>)) : <tr><td colSpan="6" className="text-center py-16 text-slate-500">No active jobs found.</td></tr>}</tbody>
+                                <thead className="bg-slate-50 text-xs text-slate-500 uppercase sticky top-0">
+                                    <tr>
+                                        <th className="px-4 py-3 w-12 text-center"><input type="checkbox" ref={selectAllCheckboxRef} onChange={handleSelectAllJobs} className="rounded border-slate-300 text-primary focus:ring-primary-light" /></th>
+                                        <th className="px-4 py-3">Job Title</th>
+                                        <th className="px-4 py-3 text-center">Experience</th>
+                                        <th className="px-4 py-3 text-center">Candidates</th>
+                                        <th className="px-4 py-3">Status</th>
+                                        <th className="px-4 py-3">Date Posted</th>
+                                        <th className="px-4 py-3 text-center">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {filteredJobs.length > 0 ? filteredJobs.map(job => (
+                                        <tr key={job.id} className={`border-t border-slate-200 ${selectedJobIds.has(job.id) ? 'bg-primary-light' : 'hover:bg-slate-50'}`}>
+                                            <td className="px-4 py-3 text-center"><input type="checkbox" checked={selectedJobIds.has(job.id)} onChange={() => handleSelectJob(job.id)} className="rounded border-slate-300 text-primary focus:ring-primary-light" /></td>
+                                            <td className="px-4 py-3 font-semibold text-slate-700">{job.title}</td>
+                                            <td className="px-4 py-3 text-center text-slate-600 font-medium">{job.min_experience_years > 0 ? `${job.min_experience_years} yrs` : 'N/A'}</td>
+                                            <td className="px-4 py-3 text-center text-slate-600">{job.candidate_count}</td>
+                                            <td className="px-4 py-3"><div className="flex justify-center"><span className="px-2.5 py-0.5 rounded-full text-xs font-semibold inline-flex items-center gap-1.5 bg-green-100 text-green-700"><span className="w-1.5 h-1.5 bg-green-500 rounded-full"></span>Active</span></div></td>
+                                            <td className="px-4 py-3 text-slate-600">{formatDate(job.created_at)}</td>
+                                            <td className="px-4 py-3 text-center"><button onClick={(e) => openActionMenu(e, job.id)} className="p-1.5 text-slate-500 hover:bg-slate-200 rounded-full"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1"></circle><circle cx="12" cy="5" r="1"></circle><circle cx="12" cy="19" r="1"></circle></svg></button></td>
+                                        </tr>
+                                    )) : <tr><td colSpan="7" className="text-center py-16 text-slate-500">No active jobs found.</td></tr>}
+                                </tbody>
                             </table>
                         </div>
                     </div>

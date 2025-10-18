@@ -1,0 +1,24 @@
+# Git and Docker
+.git
+.gitignore
+Dockerfile*
+docker-compose.yml
+
+# Python virtual environment and cache
+env/
+.venv/
+__pycache__/
+*.pyc
+
+# IDE and OS files
+.vscode/
+.idea/
+*.DS_Store
+
+# Frontend build artifacts and modules (the backend doesn't need them)
+frontend-react/node_modules/
+frontend-react/dist/
+
+# Logs and uploads
+logs/
+uploads/

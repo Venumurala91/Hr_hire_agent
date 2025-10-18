@@ -2,28 +2,28 @@
  # HR-HIRE-AGENT/requirements.txt
  # =============================================================================
  # Core Flask application
- Flask
- SQLAlchemy
- PyMySQL # Or psycopg2-binary for PostgreSQL, or another DB driver
- python-dotenv # For loading environment variables, especially for local dev
- PyYAML # For reading config.yaml
- 
- # LLM Integration (Google Gemini)
- google-generativeai
- 
- # WhatsApp SMS (Example using Twilio - sign up for a free account)
- twilio
- 
- # PDF/DocX resume parsing (choose one based on resume formats you expect)
- python-docx # For .docx
- PyPDF2 # For .pdf (basic extraction)
- # Or a more robust library like 'pdfminer.six' or 'textract'
- # For this example, we'll assume text content is provided, or a simpler parser.
+Flask
+SQLAlchemy
+PyMySQL
+python-dotenv
+PyYAML
+gunicorn
+
+# Authentication & Security
+Flask-JWT-Extended==4.6.0
+Werkzeug==3.0.3
+
+# LLM Integration (Google Gemini)
+google-generativeai
+
+# WhatsApp SMS (Twilio)
+twilio
+
+# PDF/DocX resume parsing
+python-docx
+PyPDF2
 pyresparser
 spacy
- 
- # Logging
- # No extra library needed, Python's built-in 'logging' is sufficient.
- 
- # Other utilities
- # Add more as needed during development
+nltk
+
+# Logging & other utilities are built-in or implicitly installed.

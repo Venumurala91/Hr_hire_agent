@@ -6,6 +6,7 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from database.database import Base
 
+from werkzeug.security import generate_password_hash, check_password_hash
 # --- Import StatusConstants for initial values/defaults ---
 from model.status_constants import StatusConstants
 
@@ -15,6 +16,8 @@ class JobDescription(Base):
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String(255), nullable=False)
     description_text = Column(Text, nullable=False) # Full JD text
+    location = Column(String(255)) # <-- NEW FIELD
+    salary_range = Column(String(100)) # <-- NEW FIELD
     required_skills = Column(Text) # JSON string or comma-separated for easier search
     min_experience_years = Column(Integer, default=0)
     created_at = Column(DateTime, default=func.now())
@@ -125,3 +128,25 @@ class StatusHistory(Base):
 
     def __repr__(self):
         return f"<StatusHistory(id={self.id}, candidate_id={self.candidate_id}, status_code={self.status_code}, changed_at={self.changed_at})>"
+    
+
+
+class User(Base):
+    __tablename__ = 'users'
+
+    id = Column(Integer, primary_key=True, index=True)
+    email = Column(String(255), unique=True, index=True, nullable=False)
+    password_hash = Column(String(255), nullable=False)
+    first_name = Column(String(100))
+    last_name = Column(String(100))
+    created_at = Column(DateTime, default=func.now())
+    last_login = Column(DateTime)
+
+    def set_password(self, password):
+        self.password_hash = generate_password_hash(password)
+
+    def check_password(self, password):
+        return check_password_hash(self.password_hash, password)
+
+    def __repr__(self):
+        return f"<User(id={self.id}, email='{self.email}')>"

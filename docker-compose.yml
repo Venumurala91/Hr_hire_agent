@@ -1,0 +1,91 @@
+
+# Deployment docker 
+# version: '3.8'
+
+# services:
+#   backend:
+#     build:
+#       context: .
+#       dockerfile: Dockerfile
+#     container_name: hr_agent_backend
+#     env_file:
+#       - .env        # contains DATABASE_URL
+#     volumes:
+#       - ./:/app
+#     networks:
+#       - app-network
+#     # no depends_on: db because we are not running a local DB
+
+#   frontend:
+#     build:
+#       context: ./frontend-react
+#       dockerfile: Dockerfile.frontend
+#     container_name: hr_agent_frontend
+#     ports:
+#       - "9000:80"
+#     depends_on:
+#       - backend
+#     networks:
+#       - app-network
+
+# networks:
+#   app-network:
+#     driver: bridge
+
+
+
+
+# Local_db_with_local_running_docker
+
+version: '3.8'
+
+services:
+  # 1. The MySQL Database Service
+  db:
+    image: mysql:8.0
+    container_name: hr_agent_db
+    # Environment variables taken from your DATABASE_URL
+    environment:
+      MYSQL_ROOT_PASSWORD: "Venu2425"
+      MYSQL_DATABASE: "hr_hire_db"
+    volumes:
+      - db-data:/var/lib/mysql
+    ports:
+      - "3307:3306" # Exposes the DB on the standard port to your host machine
+    networks:
+      - app-network
+
+  # 2. The Python Flask Backend Service
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: hr_agent_backend
+    env_file:
+      - .env # This file MUST be updated as explained below
+    volumes:
+      - ./:/app
+    depends_on:
+      - db
+    networks:
+      - app-network
+
+  # 3. The Nginx Frontend Service
+  frontend:
+    build:
+      context: ./frontend-react
+      dockerfile: Dockerfile
+    container_name: hr_agent_frontend
+    ports:
+      - "80:80" # Access the UI in your browser at http://localhost
+    depends_on:
+      - backend
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  db-data:
