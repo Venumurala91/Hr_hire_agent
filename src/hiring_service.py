@@ -86,7 +86,7 @@ class HiringService:
         logger.warning(f"Could not format phone number into E.164 standard: {phone_number}")
         return None
 
-    def create_job_description(self, title: str, description_text: str, location: str, salary_range: str, min_experience_years: int) -> JobDescription:
+    def create_job_description(self, title: str, description_text: str, location: str, salary_range: str) -> JobDescription:
         """
         Creates a new job description in the database.
         :param title: The title of the job.
@@ -101,8 +101,7 @@ class HiringService:
                 title=title, 
                 description_text=description_text,
                 location=location,
-                salary_range=salary_range,
-                min_experience_years=min_experience_years
+                salary_range=salary_range
             )
             self.db.add(jd)
             self.db.commit()
@@ -459,26 +458,21 @@ class HiringService:
             Candidate.current_status != excluded_status
         ).order_by(Candidate.updated_at.desc()).all()
     
-    def update_job_description(self, j_id: int, title: str, desc: str, location: str, salary: str) -> JobDescription:
+    def update_job_description(self, job_id: int, title: str, desc: str, location: str, salary: str, min_experience_years: int) -> JobDescription:
         """
         Updates the details of an existing job description.
-        :param j_id: The ID of the job to update.
-        :param title: The new title for the job.
-        :param desc: The new description text for the job.
-        :param location: The new location for the job.
-        :param salary: The new salary range for the job.
-        :return: The updated JobDescription object.
-        :raises DatabaseError: If the database operation fails.
         """
-        jd = self.get_job_description(j_id)
+        # Use the corrected parameter name 'job_id' here
+        jd = self.get_job_description(job_id) 
         try:
             jd.title = title
             jd.description_text = desc
             jd.location = location
             jd.salary_range = salary
+            jd.min_experience_years = min_experience_years
             self.db.commit()
             self.db.refresh(jd)
             return jd
         except Exception as e:
             self.db.rollback()
-            raise DatabaseError(f"Failed to update job: {e}")
+            raise DatabaseError(f"Failed to update job description: {e}")

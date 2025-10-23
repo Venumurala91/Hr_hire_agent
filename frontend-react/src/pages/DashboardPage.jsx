@@ -71,7 +71,28 @@ export function DashboardPage({ refreshTrigger, apiFetch, formatDate, showToast 
     const handleDeleteSelectedJobs = async () => { if (selectedJobIds.size === 0) return; if (window.confirm(`Are you sure you want to delete ${selectedJobIds.size} job(s)?`)) { try { await apiFetch('/api/jobs/bulk', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ job_ids: [...selectedJobIds] }) }); setSelectedJobIds(new Set()); fetchDashboardData(); } catch (error) {} } };
     const openActionMenu = (e, jobId) => { e.stopPropagation(); const rect = e.target.getBoundingClientRect(); setActionMenu({ visible: true, x: rect.right, y: rect.bottom + window.scrollY, jobId }); };
     const handleJobAction = async (action) => { const { jobId } = actionMenu; setActionMenu({ visible: false }); if (action === 'view') { try { const fullJobData = await apiFetch(`/api/jobs/${jobId}`); setViewJobModal({ isOpen: true, job: fullJobData, isEditing: false }); } catch (error) {} } else if (action === 'delete') { if (window.confirm('Are you sure you want to delete this job?')) { try { await apiFetch('/api/jobs/bulk', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ job_ids: [jobId] }) }); fetchDashboardData(); } catch (error) {} } } };
-    const handleUpdateJob = async (e) => { e.preventDefault(); const formData = new FormData(e.target); const updatedData = { title: formData.get('title'), description_text: formData.get('description_text'), location: formData.get('location'), salary_range: formData.get('salary_range') }; try { await apiFetch(`/api/jobs/${viewJobModal.job.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(updatedData) }); setViewJobModal({ isOpen: false, job: null, isEditing: false }); fetchDashboardData(); } catch(error) {} };
+    
+    // ✅ CHANGE #2: UPDATED FUNCTION TO INCLUDE 'min_experience_years'
+    const handleUpdateJob = async (e) => { 
+        e.preventDefault(); 
+        const formData = new FormData(e.target); 
+        const updatedData = { 
+            title: formData.get('title'), 
+            description_text: formData.get('description_text'), 
+            location: formData.get('location'), 
+            salary_range: formData.get('salary_range'),
+            min_experience_years: formData.get('min_experience_years') // This line is added
+        }; 
+        try { 
+            await apiFetch(`/api/jobs/${viewJobModal.job.id}`, { 
+                method: 'PUT', 
+                headers: { 'Content-Type': 'application/json' }, 
+                body: JSON.stringify(updatedData) 
+            }); 
+            setViewJobModal({ isOpen: false, job: null, isEditing: false }); 
+            fetchDashboardData(); 
+        } catch(error) {} 
+    };
 
     // NEW: Conditional rendering based on isLoading state
     if (isLoading) {
@@ -137,7 +158,55 @@ export function DashboardPage({ refreshTrigger, apiFetch, formatDate, showToast 
             </div>
 
             {actionMenu.visible && (<div className="absolute z-10 w-48 bg-white rounded-md shadow-lg border border-slate-200" style={{ top: actionMenu.y, left: actionMenu.x - 180 }}><ul className="p-1"><li><button onClick={() => handleJobAction('view')} className="w-full text-left px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-100 rounded-md">View Details</button></li><li className="my-1 border-t border-slate-200"></li><li><button onClick={() => handleJobAction('delete')} className="w-full text-left px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 rounded-md">Delete Job</button></li></ul></div>)}
-            <Modal isOpen={viewJobModal.isOpen} onClose={() => setViewJobModal({ isOpen: false, job: null, isEditing: false })} size="large"><div className="p-6"><div className="flex justify-between items-start"><h2 className="text-xl font-bold text-slate-800">{viewJobModal.isEditing ? 'Edit Job' : 'Job Details'}</h2><button onClick={() => setViewJobModal({ isOpen: false, job: null, isEditing: false })} className="text-slate-500 hover:text-slate-800 text-2xl leading-none">&times;</button></div><form onSubmit={handleUpdateJob} className="mt-6 space-y-4"><div className="grid grid-cols-1 md:grid-cols-2 gap-4"><div><label className="text-sm font-medium text-slate-600 mb-1 block">Job Title</label><input name="title" type="text" defaultValue={viewJobModal.job?.title} readOnly={!viewJobModal.isEditing} required className={`w-full px-3 py-2 border border-slate-300 rounded-md outline-none ${viewJobModal.isEditing ? 'bg-white focus:ring-2 focus:ring-primary-light focus:border-primary' : 'bg-slate-50'}`} /></div><div><label className="text-sm font-medium text-slate-600 mb-1 block">Location</label><input name="location" type="text" defaultValue={viewJobModal.job?.location} readOnly={!viewJobModal.isEditing} required className={`w-full px-3 py-2 border border-slate-300 rounded-md outline-none ${viewJobModal.isEditing ? 'bg-white focus:ring-2 focus:ring-primary-light focus:border-primary' : 'bg-slate-50'}`} /></div></div><div><label className="text-sm font-medium text-slate-600 mb-1 block">Salary Range</label><input name="salary_range" type="text" defaultValue={viewJobModal.job?.salary_range} readOnly={!viewJobModal.isEditing} className={`w-full px-3 py-2 border border-slate-300 rounded-md outline-none ${viewJobModal.isEditing ? 'bg-white focus:ring-2 focus:ring-primary-light focus:border-primary' : 'bg-slate-50'}`} /></div><div><label className="text-sm font-medium text-slate-600 mb-1 block">Job Description</label><textarea name="description_text" rows="12" defaultValue={viewJobModal.job?.description_text} readOnly={!viewJobModal.isEditing} required className={`w-full px-3 py-2 border border-slate-300 rounded-md outline-none ${viewJobModal.isEditing ? 'bg-white focus:ring-2 focus:ring-primary-light focus:border-primary' : 'bg-slate-50'}`}></textarea></div><div className="flex justify-end gap-3 pt-4 mt-2 border-t border-slate-200"><Button type="button" variant="secondary" onClick={() => setViewJobModal({ isOpen: false, job: null, isEditing: false })}>Close</Button>{viewJobModal.isEditing ? (<Button type="submit">Save Changes</Button>) : (<Button type="button" variant="secondary" onClick={() => setViewJobModal(prev => ({ ...prev, isEditing: true }))}>Edit</Button>)}</div></form></div></Modal>
+            
+            <Modal isOpen={viewJobModal.isOpen} onClose={() => setViewJobModal({ isOpen: false, job: null, isEditing: false })} size="large">
+                <div className="p-6">
+                    <div className="flex justify-between items-start">
+                        <h2 className="text-xl font-bold text-slate-800">{viewJobModal.isEditing ? 'Edit Job' : 'Job Details'}</h2>
+                        <button onClick={() => setViewJobModal({ isOpen: false, job: null, isEditing: false })} className="text-slate-500 hover:text-slate-800 text-2xl leading-none">&times;</button>
+                    </div>
+                    <form onSubmit={handleUpdateJob} className="mt-6 space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label className="text-sm font-medium text-slate-600 mb-1 block">Job Title</label>
+                                <input name="title" type="text" defaultValue={viewJobModal.job?.title} readOnly={!viewJobModal.isEditing} required className={`w-full px-3 py-2 border border-slate-300 rounded-md outline-none ${viewJobModal.isEditing ? 'bg-white focus:ring-2 focus:ring-primary-light focus:border-primary' : 'bg-slate-50'}`} />
+                            </div>
+                            <div>
+                                <label className="text-sm font-medium text-slate-600 mb-1 block">Location</label>
+                                <input name="location" type="text" defaultValue={viewJobModal.job?.location} readOnly={!viewJobModal.isEditing} required className={`w-full px-3 py-2 border border-slate-300 rounded-md outline-none ${viewJobModal.isEditing ? 'bg-white focus:ring-2 focus:ring-primary-light focus:border-primary' : 'bg-slate-50'}`} />
+                            </div>
+                        </div>
+
+                        {/* ✅ CHANGE #1: ADDED THE NEW INPUT FIELD FOR EXPERIENCE */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label className="text-sm font-medium text-slate-600 mb-1 block">Salary Range</label>
+                                <input name="salary_range" type="text" defaultValue={viewJobModal.job?.salary_range} readOnly={!viewJobModal.isEditing} className={`w-full px-3 py-2 border border-slate-300 rounded-md outline-none ${viewJobModal.isEditing ? 'bg-white focus:ring-2 focus:ring-primary-light focus:border-primary' : 'bg-slate-50'}`} />
+                            </div>
+                            <div>
+                                <label className="text-sm font-medium text-slate-600 mb-1 block">Min. Experience (years)</label>
+                                <input 
+                                    name="min_experience_years" 
+                                    type="number" 
+                                    min="0"
+                                    defaultValue={viewJobModal.job?.min_experience_years} 
+                                    readOnly={!viewJobModal.isEditing} 
+                                    className={`w-full px-3 py-2 border border-slate-300 rounded-md outline-none ${viewJobModal.isEditing ? 'bg-white focus:ring-2 focus:ring-primary-light focus:border-primary' : 'bg-slate-50'}`} 
+                                />
+                            </div>
+                        </div>
+
+                        <div>
+                            <label className="text-sm font-medium text-slate-600 mb-1 block">Job Description</label>
+                            <textarea name="description_text" rows="12" defaultValue={viewJobModal.job?.description_text} readOnly={!viewJobModal.isEditing} required className={`w-full px-3 py-2 border border-slate-300 rounded-md outline-none ${viewJobModal.isEditing ? 'bg-white focus:ring-2 focus:ring-primary-light focus:border-primary' : 'bg-slate-50'}`}></textarea>
+                        </div>
+                        <div className="flex justify-end gap-3 pt-4 mt-2 border-t border-slate-200">
+                            <Button type="button" variant="secondary" onClick={() => setViewJobModal({ isOpen: false, job: null, isEditing: false })}>Close</Button>
+                            {viewJobModal.isEditing ? (<Button type="submit">Save Changes</Button>) : (<Button type="button" variant="secondary" onClick={() => setViewJobModal(prev => ({ ...prev, isEditing: true }))}>Edit</Button>)}
+                        </div>
+                    </form>
+                </div>
+            </Modal>
         </div>
     );
 }

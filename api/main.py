@@ -305,9 +305,22 @@ def handle_single_job(job_id):
             data = request.json
             if not data or not all(k in data for k in ["title", "description_text", "location"]):
                 raise ValidationError("Missing required fields.")
+            
+            # Safely get and convert the experience value
             experience = data.get('min_experience_years')
-            min_experience_years = int(experience) if experience else 0
-            updated_job = hiring_service.update_job_description(job_id=job_id, title=data['title'], desc=data['description_text'], location=data['location'], salary=data['salary_range'], min_experience_years=min_experience_years)
+            try:
+                min_experience_years = int(experience) if experience is not None else 0
+            except (ValueError, TypeError):
+                min_experience_years = 0 # Default to 0 if value is invalid
+
+            updated_job = hiring_service.update_job_description(
+                job_id=job_id, 
+                title=data['title'], 
+                desc=data['description_text'], 
+                location=data['location'], 
+                salary=data.get('salary_range', ''), 
+                min_experience_years=min_experience_years  # Pass the new value
+            )
             return jsonify({"message": "Job updated successfully", "job_id": updated_job.id}), 200
 
 @app.route("/api/jobs/bulk", methods=["DELETE"])
