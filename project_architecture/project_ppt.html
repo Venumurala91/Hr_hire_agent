@@ -1,0 +1,1431 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HR Hire Agent - AI-Powered Recruitment Made Simple</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            /* Primary color scheme as requested */
+            --color-primary: #4F46E5;
+            --color-primary-hover: #4338CA;
+            --color-secondary: #10B981;
+            --color-secondary-hover: #059669;
+            --color-accent: #F59E0B;
+            --color-accent-hover: #D97706;
+            
+            /* Status colors */
+            --color-success: #10B981;
+            --color-info: #3B82F6;
+            --color-warning: #F59E0B;
+            --color-error: #EF4444;
+            
+            /* Neutral colors */
+            --color-white: #ffffff;
+            --color-gray-50: #F9FAFB;
+            --color-gray-100: #F3F4F6;
+            --color-gray-200: #E5E7EB;
+            --color-gray-300: #D1D5DB;
+            --color-gray-400: #9CA3AF;
+            --color-gray-500: #6B7280;
+            --color-gray-600: #4B5563;
+            --color-gray-700: #374151;
+            --color-gray-800: #1F2937;
+            --color-gray-900: #111827;
+            
+            /* Typography */
+            --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            --font-size-xs: 0.75rem;
+            --font-size-sm: 0.875rem;
+            --font-size-base: 1rem;
+            --font-size-lg: 1.125rem;
+            --font-size-xl: 1.25rem;
+            --font-size-2xl: 1.5rem;
+            --font-size-3xl: 1.875rem;
+            --font-size-4xl: 2.25rem;
+            --font-size-5xl: 3rem;
+            
+            /* Spacing */
+            --spacing-1: 0.25rem;
+            --spacing-2: 0.5rem;
+            --spacing-3: 0.75rem;
+            --spacing-4: 1rem;
+            --spacing-5: 1.25rem;
+            --spacing-6: 1.5rem;
+            --spacing-8: 2rem;
+            --spacing-10: 2.5rem;
+            --spacing-12: 3rem;
+            --spacing-16: 4rem;
+            --spacing-20: 5rem;
+            
+            /* Shadows */
+            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+            --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+            
+            /* Border radius */
+            --radius-sm: 0.25rem;
+            --radius-md: 0.375rem;
+            --radius-lg: 0.5rem;
+            --radius-xl: 0.75rem;
+            --radius-2xl: 1rem;
+            --radius-full: 9999px;
+            
+            /* Transitions */
+            --transition-all: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            --transition-fast: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: var(--font-family);
+            line-height: 1.6;
+            color: var(--color-gray-800);
+            overflow-x: hidden;
+        }
+        
+        /* Smooth scrolling */
+        html {
+            scroll-behavior: smooth;
+        }
+        
+        /* Header/Navigation */
+        .header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
+            backdrop-filter: blur(10px);
+            transition: var(--transition-all);
+        }
+        
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: var(--spacing-4) var(--spacing-6);
+        }
+        
+        .logo {
+            font-size: var(--font-size-xl);
+            font-weight: 700;
+            color: var(--color-white);
+            text-decoration: none;
+        }
+        
+        .nav-menu {
+            display: flex;
+            list-style: none;
+            gap: var(--spacing-8);
+        }
+        
+        .nav-link {
+            color: var(--color-white);
+            text-decoration: none;
+            font-weight: 500;
+            transition: var(--transition-fast);
+            opacity: 0.9;
+        }
+        
+        .nav-link:hover {
+            opacity: 1;
+            transform: translateY(-1px);
+        }
+        
+        .user-profile {
+            width: 40px;
+            height: 40px;
+            border-radius: var(--radius-full);
+            background: rgba(255, 255, 255, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--color-white);
+            font-size: var(--font-size-lg);
+            cursor: pointer;
+            transition: var(--transition-fast);
+        }
+        
+        .user-profile:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(1.05);
+        }
+        
+        .mobile-menu-btn {
+            display: none;
+            background: none;
+            border: none;
+            color: var(--color-white);
+            font-size: var(--font-size-xl);
+            cursor: pointer;
+        }
+        
+        /* Hero Section */
+        .hero {
+            background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 50%, var(--color-accent) 100%);
+            color: var(--color-white);
+            padding: var(--spacing-20) var(--spacing-6) var(--spacing-16);
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="20" cy="20" r="1" fill="white" opacity="0.1"/><circle cx="80" cy="40" r="1" fill="white" opacity="0.1"/><circle cx="40" cy="80" r="1" fill="white" opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>') repeat;
+            opacity: 0.3;
+        }
+        
+        .hero-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .hero h1 {
+            font-size: var(--font-size-5xl);
+            font-weight: 700;
+            margin-bottom: var(--spacing-6);
+            opacity: 0;
+            animation: fadeInUp 1s ease-out 0.2s forwards;
+        }
+        
+        .hero p {
+            font-size: var(--font-size-xl);
+            margin-bottom: var(--spacing-8);
+            opacity: 0.9;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            opacity: 0;
+            animation: fadeInUp 1s ease-out 0.4s forwards;
+        }
+        
+        .cta-buttons {
+            display: flex;
+            gap: var(--spacing-4);
+            justify-content: center;
+            flex-wrap: wrap;
+            opacity: 0;
+            animation: fadeInUp 1s ease-out 0.6s forwards;
+        }
+        
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: var(--spacing-4) var(--spacing-6);
+            border-radius: var(--radius-lg);
+            font-weight: 600;
+            text-decoration: none;
+            transition: var(--transition-all);
+            cursor: pointer;
+            border: 2px solid transparent;
+            font-size: var(--font-size-base);
+            min-width: 140px;
+        }
+        
+        .btn-primary {
+            background: var(--color-white);
+            color: var(--color-primary);
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px) scale(1.02);
+            box-shadow: var(--shadow-lg);
+        }
+        
+        .btn-secondary {
+            background: transparent;
+            color: var(--color-white);
+            border-color: var(--color-white);
+        }
+        
+        .btn-secondary:hover {
+            background: var(--color-white);
+            color: var(--color-primary);
+            transform: translateY(-2px) scale(1.02);
+        }
+        
+        /* Section Styling */
+        .section {
+            padding: var(--spacing-16) var(--spacing-6);
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .section-title {
+            font-size: var(--font-size-3xl);
+            font-weight: 700;
+            text-align: center;
+            margin-bottom: var(--spacing-4);
+            color: var(--color-gray-900);
+        }
+        
+        .section-subtitle {
+            font-size: var(--font-size-lg);
+            text-align: center;
+            color: var(--color-gray-600);
+            margin-bottom: var(--spacing-12);
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        
+        /* Features Section */
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: var(--spacing-8);
+            margin-top: var(--spacing-12);
+        }
+        
+        .feature-card {
+            background: var(--color-white);
+            border-radius: var(--radius-xl);
+            padding: var(--spacing-8);
+            text-align: center;
+            box-shadow: var(--shadow-md);
+            transition: var(--transition-all);
+            border: 1px solid var(--color-gray-100);
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-5px) scale(1.02);
+            box-shadow: var(--shadow-xl);
+            border-color: var(--color-primary);
+        }
+        
+        .feature-icon {
+            font-size: var(--font-size-4xl);
+            margin-bottom: var(--spacing-4);
+            display: block;
+        }
+        
+        .feature-title {
+            font-size: var(--font-size-xl);
+            font-weight: 600;
+            margin-bottom: var(--spacing-3);
+            color: var(--color-gray-900);
+        }
+        
+        .feature-description {
+            color: var(--color-gray-600);
+            line-height: 1.6;
+        }
+        
+        /* Dashboard Preview Section */
+        .dashboard-preview {
+            background: var(--color-gray-50);
+        }
+        
+        .dashboard-container {
+            background: var(--color-white);
+            border-radius: var(--radius-2xl);
+            padding: var(--spacing-8);
+            box-shadow: var(--shadow-lg);
+            margin-top: var(--spacing-8);
+        }
+        
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: var(--spacing-6);
+            margin-bottom: var(--spacing-8);
+        }
+        
+        .metric-card {
+            background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
+            color: var(--color-white);
+            padding: var(--spacing-6);
+            border-radius: var(--radius-lg);
+            text-align: center;
+            transition: var(--transition-all);
+            cursor: pointer;
+        }
+        
+        .metric-card:hover {
+            transform: translateY(-3px) scale(1.05);
+        }
+        
+        .metric-number {
+            font-size: var(--font-size-3xl);
+            font-weight: 700;
+            display: block;
+            margin-bottom: var(--spacing-2);
+        }
+        
+        .metric-label {
+            font-size: var(--font-size-sm);
+            opacity: 0.9;
+        }
+        
+        .dashboard-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--spacing-8);
+        }
+        
+        .chart-container {
+            background: var(--color-gray-50);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-6);
+            height: 300px;
+            position: relative;
+        }
+        
+        .candidates-table {
+            background: var(--color-gray-50);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-6);
+        }
+        
+        .table-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--spacing-4);
+        }
+        
+        .filter-select {
+            padding: var(--spacing-2) var(--spacing-4);
+            border: 1px solid var(--color-gray-300);
+            border-radius: var(--radius-md);
+            background: var(--color-white);
+            cursor: pointer;
+        }
+        
+        .candidate-list {
+            space-y: var(--spacing-3);
+        }
+        
+        .candidate-item {
+            background: var(--color-white);
+            padding: var(--spacing-4);
+            border-radius: var(--radius-md);
+            border: 1px solid var(--color-gray-200);
+            margin-bottom: var(--spacing-3);
+            transition: var(--transition-fast);
+        }
+        
+        .candidate-item:hover {
+            border-color: var(--color-primary);
+            transform: translateX(3px);
+        }
+        
+        .candidate-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: var(--spacing-2);
+        }
+        
+        .candidate-name {
+            font-weight: 600;
+            color: var(--color-gray-900);
+        }
+        
+        .match-score {
+            background: var(--color-secondary);
+            color: var(--color-white);
+            padding: var(--spacing-1) var(--spacing-2);
+            border-radius: var(--radius-full);
+            font-size: var(--font-size-xs);
+            font-weight: 600;
+        }
+        
+        .candidate-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .candidate-position {
+            color: var(--color-gray-600);
+            font-size: var(--font-size-sm);
+        }
+        
+        .status-badge {
+            padding: var(--spacing-1) var(--spacing-3);
+            border-radius: var(--radius-full);
+            font-size: var(--font-size-xs);
+            font-weight: 500;
+            color: var(--color-white);
+        }
+        
+        /* Stats Section */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: var(--spacing-8);
+        }
+        
+        .stat-card {
+            text-align: center;
+            padding: var(--spacing-8);
+        }
+        
+        .stat-number {
+            font-size: var(--font-size-4xl);
+            font-weight: 700;
+            color: var(--color-primary);
+            display: block;
+            margin-bottom: var(--spacing-2);
+        }
+        
+        .stat-label {
+            font-size: var(--font-size-lg);
+            color: var(--color-gray-700);
+            margin-bottom: var(--spacing-4);
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: var(--color-gray-200);
+            border-radius: var(--radius-full);
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--color-primary), var(--color-secondary));
+            border-radius: var(--radius-full);
+            width: 0;
+            transition: width 2s ease-out;
+        }
+        
+        .circular-progress {
+            width: 100px;
+            height: 100px;
+            border-radius: var(--radius-full);
+            background: conic-gradient(var(--color-primary) 0deg, var(--color-gray-200) 0deg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto var(--spacing-4);
+            position: relative;
+        }
+        
+        .circular-progress::before {
+            content: '';
+            width: 80px;
+            height: 80px;
+            background: var(--color-white);
+            border-radius: var(--radius-full);
+            position: absolute;
+        }
+        
+        .circular-progress .stat-number {
+            position: relative;
+            z-index: 1;
+            font-size: var(--font-size-xl);
+            margin: 0;
+        }
+        
+        /* Tech Stack Section */
+        .tech-stack {
+            background: var(--color-gray-50);
+        }
+        
+        .tech-categories {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: var(--spacing-8);
+        }
+        
+        .tech-category {
+            text-align: center;
+        }
+        
+        .tech-category-title {
+            font-size: var(--font-size-lg);
+            font-weight: 600;
+            margin-bottom: var(--spacing-4);
+            color: var(--color-gray-900);
+        }
+        
+        .tech-badges {
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-3);
+            align-items: center;
+        }
+        
+        .tech-badge {
+            background: var(--color-white);
+            color: var(--color-gray-800);
+            padding: var(--spacing-2) var(--spacing-4);
+            border-radius: var(--radius-full);
+            font-size: var(--font-size-sm);
+            font-weight: 500;
+            border: 2px solid var(--color-primary);
+            transition: var(--transition-fast);
+        }
+        
+        .tech-badge:hover {
+            background: var(--color-primary);
+            color: var(--color-white);
+            transform: scale(1.05);
+        }
+        
+        /* CTA Section */
+        .cta-section {
+            background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
+            color: var(--color-white);
+            text-align: center;
+        }
+        
+        .cta-section .section-title {
+            color: var(--color-white);
+        }
+        
+        .cta-section .section-subtitle {
+            color: rgba(255, 255, 255, 0.9);
+        }
+        
+        /* Footer */
+        .footer {
+            background: var(--color-gray-900);
+            color: var(--color-gray-300);
+            padding: var(--spacing-12) var(--spacing-6) var(--spacing-6);
+        }
+        
+        .footer-content {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: var(--spacing-8);
+            margin-bottom: var(--spacing-8);
+        }
+        
+        .footer-section h3 {
+            color: var(--color-white);
+            margin-bottom: var(--spacing-4);
+        }
+        
+        .footer-links {
+            list-style: none;
+        }
+        
+        .footer-links li {
+            margin-bottom: var(--spacing-2);
+        }
+        
+        .footer-links a {
+            color: var(--color-gray-400);
+            text-decoration: none;
+            transition: var(--transition-fast);
+        }
+        
+        .footer-links a:hover {
+            color: var(--color-primary);
+        }
+        
+        .footer-bottom {
+            border-top: 1px solid var(--color-gray-700);
+            padding-top: var(--spacing-6);
+            text-align: center;
+            color: var(--color-gray-500);
+        }
+        
+        .social-icons {
+            display: flex;
+            justify-content: center;
+            gap: var(--spacing-4);
+            margin-bottom: var(--spacing-4);
+        }
+        
+        .social-icon {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            background: var(--color-gray-700);
+            color: var(--color-white);
+            border-radius: var(--radius-full);
+            text-align: center;
+            line-height: 40px;
+            text-decoration: none;
+            transition: var(--transition-fast);
+        }
+        
+        .social-icon:hover {
+            background: var(--color-primary);
+            transform: translateY(-2px);
+        }
+        
+        /* Pipeline Visualization */
+        .pipeline {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin: var(--spacing-8) 0;
+            padding: var(--spacing-6);
+            background: var(--color-white);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-md);
+        }
+        
+        .pipeline-stage {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+            flex: 1;
+        }
+        
+        .pipeline-stage:not(:last-child)::after {
+            content: '→';
+            position: absolute;
+            right: -15px;
+            top: 15px;
+            color: var(--color-gray-400);
+            font-size: var(--font-size-lg);
+        }
+        
+        .stage-circle {
+            width: 40px;
+            height: 40px;
+            border-radius: var(--radius-full);
+            background: var(--color-primary);
+            color: var(--color-white);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: var(--font-size-sm);
+            margin-bottom: var(--spacing-2);
+        }
+        
+        .stage-label {
+            font-size: var(--font-size-xs);
+            color: var(--color-gray-600);
+            text-align: center;
+        }
+        
+        /* Animations */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        @keyframes countUp {
+            from {
+                opacity: 0;
+                transform: scale(0.5);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+        
+        .fade-in {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: all 0.6s ease-out;
+        }
+        
+        .fade-in.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        .count-animation {
+            animation: countUp 0.6s ease-out;
+        }
+        
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .nav-menu {
+                display: none;
+                position: absolute;
+                top: 100%;
+                left: 0;
+                right: 0;
+                background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
+                flex-direction: column;
+                padding: var(--spacing-4);
+                gap: var(--spacing-4);
+            }
+            
+            .nav-menu.active {
+                display: flex;
+            }
+            
+            .mobile-menu-btn {
+                display: block;
+            }
+            
+            .hero h1 {
+                font-size: var(--font-size-3xl);
+            }
+            
+            .hero p {
+                font-size: var(--font-size-lg);
+            }
+            
+            .cta-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .dashboard-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .metrics-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .candidate-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: var(--spacing-2);
+            }
+            
+            .candidate-meta {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: var(--spacing-2);
+            }
+            
+            .pipeline {
+                flex-direction: column;
+                gap: var(--spacing-4);
+            }
+            
+            .pipeline-stage::after {
+                content: '↓';
+                right: auto;
+                top: auto;
+                bottom: -12px;
+            }
+            
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .metrics-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .section {
+                padding: var(--spacing-8) var(--spacing-4);
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header/Navigation -->
+    <header class="header">
+        <nav class="nav-container">
+            <a href="#" class="logo">HR Hire Agent</a>
+            <ul class="nav-menu" id="navMenu">
+                <li><a href="#dashboard" class="nav-link">Dashboard</a></li>
+                <li><a href="#features" class="nav-link">Features</a></li>
+                <li><a href="#analytics" class="nav-link">Analytics</a></li>
+                <li><a href="#tech-stack" class="nav-link">Technology</a></li>
+            </ul>
+            <div class="user-profile">👤</div>
+            <button class="mobile-menu-btn" id="mobileMenuBtn">☰</button>
+        </nav>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-container">
+            <h1>AI-Powered Recruitment Made Simple</h1>
+            <p>Transform your hiring process with intelligent automation, visual pipelines, and data-driven insights. Screen candidates faster, hire smarter, and build better teams.</p>
+            <div class="cta-buttons">
+                <a href="#dashboard" class="btn btn-primary">Get Started</a>
+                <a href="#features" class="btn btn-secondary">Watch Demo</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="section" id="features">
+        <div class="container">
+            <h2 class="section-title">Powerful Features for Modern Recruitment</h2>
+            <p class="section-subtitle">Everything you need to streamline your hiring process and find the perfect candidates</p>
+            
+            <div class="features-grid">
+                <div class="feature-card fade-in">
+                    <span class="feature-icon">🤖</span>
+                    <h3 class="feature-title">AI-Powered Resume Screening</h3>
+                    <p class="feature-description">Automatically parse and analyze resumes with Google Gemini AI. Extract skills, experience, and calculate ATS scores instantly.</p>
+                </div>
+                
+                <div class="feature-card fade-in">
+                    <span class="feature-icon">📊</span>
+                    <h3 class="feature-title">Visual Hiring Pipeline</h3>
+                    <p class="feature-description">Track candidates through customizable stages with an intuitive visual pipeline. Never lose track of where each candidate stands.</p>
+                </div>
+                
+                <div class="feature-card fade-in">
+                    <span class="feature-icon">📂</span>
+                    <h3 class="feature-title">Bulk Resume Upload</h3>
+                    <p class="feature-description">Process dozens of resumes simultaneously. Upload multiple files and let AI handle the screening automatically.</p>
+                </div>
+                
+                <div class="feature-card fade-in">
+                    <span class="feature-icon">✉️</span>
+                    <h3 class="feature-title">Integrated Communications</h3>
+                    <p class="feature-description">Send emails and WhatsApp messages directly from the platform using customizable templates.</p>
+                </div>
+                
+                <div class="feature-card fade-in">
+                    <span class="feature-icon">📈</span>
+                    <h3 class="feature-title">Interactive Dashboard</h3>
+                    <p class="feature-description">Get real-time insights with comprehensive metrics, charts, and candidate distribution analytics.</p>
+                </div>
+                
+                <div class="feature-card fade-in">
+                    <span class="feature-icon">👤</span>
+                    <h3 class="feature-title">Detailed Candidate Profiles</h3>
+                    <p class="feature-description">Access complete candidate information including AI analysis, matched skills, interview feedback, and activity timeline.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Dashboard Preview Section -->
+    <section class="section dashboard-preview" id="dashboard">
+        <div class="container">
+            <h2 class="section-title">Interactive Dashboard Demo</h2>
+            <p class="section-subtitle">Experience the power of our recruitment analytics in real-time</p>
+            
+            <div class="dashboard-container fade-in">
+                <!-- Metrics Cards -->
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <span class="metric-number" data-target="247">0</span>
+                        <span class="metric-label">Total Candidates</span>
+                    </div>
+                    <div class="metric-card">
+                        <span class="metric-number" data-target="12">0</span>
+                        <span class="metric-label">Active Jobs</span>
+                    </div>
+                    <div class="metric-card">
+                        <span class="metric-number" data-target="18">0</span>
+                        <span class="metric-label">Interviews This Week</span>
+                    </div>
+                    <div class="metric-card">
+                        <span class="metric-number" data-target="8">0</span>
+                        <span class="metric-label">Positions Filled</span>
+                    </div>
+                </div>
+                
+                <!-- Dashboard Content -->
+                <div class="dashboard-content">
+                    <!-- Chart Section -->
+                    <div class="chart-container">
+                        <canvas id="candidateChart" style="max-height: 250px;"></canvas>
+                    </div>
+                    
+                    <!-- Candidates Table -->
+                    <div class="candidates-table">
+                        <div class="table-header">
+                            <h3>Recent Candidates</h3>
+                            <select class="filter-select" id="statusFilter">
+                                <option value="all">All Status</option>
+                                <option value="Applied">Applied</option>
+                                <option value="Screening">Screening</option>
+                                <option value="Interview">Interview</option>
+                                <option value="Offer">Offer</option>
+                                <option value="Hired">Hired</option>
+                            </select>
+                        </div>
+                        
+                        <div class="candidate-list" id="candidateList">
+                            <!-- Candidates will be populated by JavaScript -->
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Pipeline Visualization -->
+                <div class="pipeline">
+                    <div class="pipeline-stage">
+                        <div class="stage-circle">45</div>
+                        <div class="stage-label">Applied</div>
+                    </div>
+                    <div class="pipeline-stage">
+                        <div class="stage-circle">32</div>
+                        <div class="stage-label">Screening</div>
+                    </div>
+                    <div class="pipeline-stage">
+                        <div class="stage-circle">23</div>
+                        <div class="stage-label">Interview</div>
+                    </div>
+                    <div class="pipeline-stage">
+                        <div class="stage-circle">5</div>
+                        <div class="stage-label">Offer</div>
+                    </div>
+                    <div class="pipeline-stage">
+                        <div class="stage-circle">8</div>
+                        <div class="stage-label">Hired</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Stats/Benefits Section -->
+    <section class="section" id="analytics">
+        <div class="container">
+            <h2 class="section-title">Proven Results That Matter</h2>
+            <p class="section-subtitle">Join thousands of companies already transforming their recruitment process</p>
+            
+            <div class="stats-grid">
+                <div class="stat-card fade-in">
+                    <div class="circular-progress" data-percentage="70">
+                        <span class="stat-number">70%</span>
+                    </div>
+                    <div class="stat-label">Faster Screening</div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" data-width="70"></div>
+                    </div>
+                </div>
+                
+                <div class="stat-card fade-in">
+                    <div class="circular-progress" data-percentage="95">
+                        <span class="stat-number">95%</span>
+                    </div>
+                    <div class="stat-label">AI Accuracy</div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" data-width="95"></div>
+                    </div>
+                </div>
+                
+                <div class="stat-card fade-in">
+                    <span class="stat-number count-up" data-target="500">0</span>
+                    <div class="stat-label">Companies Trust Us</div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" data-width="100"></div>
+                    </div>
+                </div>
+                
+                <div class="stat-card fade-in">
+                    <span class="stat-number count-up" data-target="10000">0</span>
+                    <div class="stat-label">Candidates Processed</div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" data-width="100"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Technology Stack Section -->
+    <section class="section tech-stack" id="tech-stack">
+        <div class="container">
+            <h2 class="section-title">Built with Modern Technology</h2>
+            <p class="section-subtitle">Powered by cutting-edge tools and frameworks for maximum performance and reliability</p>
+            
+            <div class="tech-categories">
+                <div class="tech-category fade-in">
+                    <h3 class="tech-category-title">Frontend</h3>
+                    <div class="tech-badges">
+                        <span class="tech-badge">React</span>
+                        <span class="tech-badge">Vite</span>
+                        <span class="tech-badge">Chart.js</span>
+                    </div>
+                </div>
+                
+                <div class="tech-category fade-in">
+                    <h3 class="tech-category-title">Backend</h3>
+                    <div class="tech-badges">
+                        <span class="tech-badge">Python</span>
+                        <span class="tech-badge">Flask</span>
+                        <span class="tech-badge">SQLAlchemy</span>
+                    </div>
+                </div>
+                
+                <div class="tech-category fade-in">
+                    <h3 class="tech-category-title">Database</h3>
+                    <div class="tech-badges">
+                        <span class="tech-badge">MySQL</span>
+                    </div>
+                </div>
+                
+                <div class="tech-category fade-in">
+                    <h3 class="tech-category-title">AI &amp; ML</h3>
+                    <div class="tech-badges">
+                        <span class="tech-badge">Google Gemini</span>
+                    </div>
+                </div>
+                
+                <div class="tech-category fade-in">
+                    <h3 class="tech-category-title">Communication</h3>
+                    <div class="tech-badges">
+                        <span class="tech-badge">Twilio</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Call-to-Action Section -->
+    <section class="section cta-section">
+        <div class="container">
+            <h2 class="section-title">Start Hiring Smarter Today</h2>
+            <p class="section-subtitle">Join hundreds of companies already using HR Hire Agent to transform their recruitment process</p>
+            
+            <div class="cta-buttons">
+                <a href="#" class="btn btn-primary">Get Started Free</a>
+                <a href="#" class="btn btn-secondary">Schedule Demo</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>HR Hire Agent</h3>
+                    <p>AI-powered recruitment made simple. Transform your hiring process with intelligent automation and data-driven insights.</p>
+                </div>
+                
+                <div class="footer-section">
+                    <h3>Features</h3>
+                    <ul class="footer-links">
+                        <li><a href="#">AI Resume Screening</a></li>
+                        <li><a href="#">Visual Pipeline</a></li>
+                        <li><a href="#">Bulk Processing</a></li>
+                        <li><a href="#">Analytics Dashboard</a></li>
+                    </ul>
+                </div>
+                
+                <div class="footer-section">
+                    <h3>Company</h3>
+                    <ul class="footer-links">
+                        <li><a href="#">About Us</a></li>
+                        <li><a href="#">Pricing</a></li>
+                        <li><a href="#">Contact</a></li>
+                        <li><a href="#">Support</a></li>
+                    </ul>
+                </div>
+                
+                <div class="footer-section">
+                    <h3>Resources</h3>
+                    <ul class="footer-links">
+                        <li><a href="#">Documentation</a></li>
+                        <li><a href="#">API Reference</a></li>
+                        <li><a href="#">Blog</a></li>
+                        <li><a href="#">Help Center</a></li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="footer-bottom">
+                <div class="social-icons">
+                    <a href="#" class="social-icon">📧</a>
+                    <a href="#" class="social-icon">🐦</a>
+                    <a href="#" class="social-icon">💼</a>
+                    <a href="#" class="social-icon">📱</a>
+                </div>
+                <p>&copy; 2024 HR Hire Agent. All rights reserved. | Privacy Policy | Terms of Service</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Sample data
+        const candidatesData = [
+            { name: "John Doe", position: "Senior Developer", stage: "Interview", match: "85%", statusColor: "#3B82F6" },
+            { name: "Jane Smith", position: "Product Manager", stage: "Screening", match: "92%", statusColor: "#4F46E5" },
+            { name: "Mike Johnson", position: "Data Analyst", stage: "Offer", match: "88%", statusColor: "#10B981" },
+            { name: "Sarah Williams", position: "UX Designer", stage: "Applied", match: "78%", statusColor: "#4F46E5" },
+            { name: "David Brown", position: "DevOps Engineer", stage: "L2 Interview", match: "90%", statusColor: "#F59E0B" },
+            { name: "Emily Davis", position: "Marketing Manager", stage: "L1 Interview", match: "82%", statusColor: "#10B981" }
+        ];
+
+        // Mobile menu toggle
+        const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+        const navMenu = document.getElementById('navMenu');
+        
+        mobileMenuBtn.addEventListener('click', () => {
+            navMenu.classList.toggle('active');
+        });
+
+        // Smooth scrolling for navigation links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+
+        // Intersection Observer for fade-in animations
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                }
+            });
+        }, observerOptions);
+
+        // Observe all fade-in elements
+        document.querySelectorAll('.fade-in').forEach(el => {
+            observer.observe(el);
+        });
+
+        // Counter animation
+        function animateCounter(element, target, duration = 2000) {
+            let start = 0;
+            const startTime = performance.now();
+            
+            function updateCounter(currentTime) {
+                const elapsedTime = currentTime - startTime;
+                const progress = Math.min(elapsedTime / duration, 1);
+                
+                const easeOut = 1 - Math.pow(1 - progress, 3);
+                const currentValue = Math.floor(easeOut * target);
+                
+                if (target >= 1000) {
+                    element.textContent = (currentValue / 1000).toFixed(1) + 'k+';
+                } else if (target >= 500) {
+                    element.textContent = currentValue + '+';
+                } else {
+                    element.textContent = currentValue;
+                }
+                
+                if (progress < 1) {
+                    requestAnimationFrame(updateCounter);
+                }
+            }
+            
+            requestAnimationFrame(updateCounter);
+        }
+
+        // Initialize counters when they come into view
+        const counterObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const element = entry.target;
+                    const target = parseInt(element.getAttribute('data-target'));
+                    animateCounter(element, target);
+                    counterObserver.unobserve(element);
+                }
+            });
+        }, { threshold: 0.5 });
+
+        document.querySelectorAll('[data-target]').forEach(counter => {
+            counterObserver.observe(counter);
+        });
+
+        // Progress bars animation
+        const progressObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const progressFill = entry.target.querySelector('.progress-fill');
+                    if (progressFill) {
+                        const width = progressFill.getAttribute('data-width');
+                        setTimeout(() => {
+                            progressFill.style.width = width + '%';
+                        }, 300);
+                    }
+                    progressObserver.unobserve(entry.target);
+                }
+            });
+        }, { threshold: 0.5 });
+
+        document.querySelectorAll('.stat-card').forEach(card => {
+            progressObserver.observe(card);
+        });
+
+        // Circular progress animation
+        const circularProgressObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const element = entry.target;
+                    const percentage = element.getAttribute('data-percentage');
+                    const degrees = (percentage / 100) * 360;
+                    
+                    setTimeout(() => {
+                        element.style.background = `conic-gradient(var(--color-primary) ${degrees}deg, var(--color-gray-200) ${degrees}deg)`;
+                    }, 500);
+                    
+                    circularProgressObserver.unobserve(element);
+                }
+            });
+        }, { threshold: 0.5 });
+
+        document.querySelectorAll('.circular-progress').forEach(progress => {
+            circularProgressObserver.observe(progress);
+        });
+
+        // Populate candidates list
+        function renderCandidates(candidates) {
+            const candidateList = document.getElementById('candidateList');
+            candidateList.innerHTML = '';
+            
+            candidates.forEach(candidate => {
+                const candidateItem = document.createElement('div');
+                candidateItem.className = 'candidate-item';
+                candidateItem.innerHTML = `
+                    <div class="candidate-header">
+                        <div class="candidate-name">${candidate.name}</div>
+                        <div class="match-score">${candidate.match}</div>
+                    </div>
+                    <div class="candidate-meta">
+                        <div class="candidate-position">${candidate.position}</div>
+                        <div class="status-badge" style="background-color: ${candidate.statusColor}">
+                            ${candidate.stage}
+                        </div>
+                    </div>
+                `;
+                candidateList.appendChild(candidateItem);
+            });
+        }
+
+        // Filter candidates
+        document.getElementById('statusFilter').addEventListener('change', (e) => {
+            const selectedStatus = e.target.value;
+            let filteredCandidates;
+            
+            if (selectedStatus === 'all') {
+                filteredCandidates = candidatesData;
+            } else {
+                filteredCandidates = candidatesData.filter(candidate => 
+                    candidate.stage.includes(selectedStatus)
+                );
+            }
+            
+            renderCandidates(filteredCandidates);
+        });
+
+        // Initialize candidates list
+        renderCandidates(candidatesData);
+
+        // Chart initialization
+        function initChart() {
+            const ctx = document.getElementById('candidateChart').getContext('2d');
+            
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Applied', 'Screening', 'L1 Interview', 'L2 Interview', 'Offer', 'Hired', 'Rejected'],
+                    datasets: [{
+                        data: [45, 32, 15, 8, 5, 8, 134],
+                        backgroundColor: [
+                            '#4F46E5',
+                            '#3B82F6', 
+                            '#10B981',
+                            '#F59E0B',
+                            '#10B981',
+                            '#10B981',
+                            '#EF4444'
+                        ],
+                        borderWidth: 2,
+                        borderColor: '#ffffff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                padding: 20,
+                                usePointStyle: true,
+                                font: {
+                                    size: 12
+                                }
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.label || '';
+                                    const value = context.parsed || 0;
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = Math.round((value / total) * 100);
+                                    return `${label}: ${value} (${percentage}%)`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Initialize chart when page loads
+        window.addEventListener('load', () => {
+            setTimeout(initChart, 1000);
+        });
+
+        // Header scroll effect
+        let lastScroll = 0;
+        window.addEventListener('scroll', () => {
+            const currentScroll = window.pageYOffset;
+            const header = document.querySelector('.header');
+            
+            if (currentScroll <= 0) {
+                header.style.transform = 'translateY(0)';
+                return;
+            }
+            
+            if (currentScroll > lastScroll && currentScroll > 100) {
+                // Scrolling down
+                header.style.transform = 'translateY(-100%)';
+            } else {
+                // Scrolling up
+                header.style.transform = 'translateY(0)';
+            }
+            
+            lastScroll = currentScroll;
+        });
+
+        // Add loading states
+        window.addEventListener('load', () => {
+            document.body.classList.add('loaded');
+        });
+    </script>
+</body>
+</html>

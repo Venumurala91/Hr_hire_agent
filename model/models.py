@@ -19,7 +19,8 @@ class JobDescription(Base):
     location = Column(String(255)) # <-- NEW FIELD
     salary_range = Column(String(100)) # <-- NEW FIELD
     required_skills = Column(Text) # JSON string or comma-separated for easier search
-    min_experience_years = Column(Integer, default=0)
+    # min_experience_years = Column(Integer, default=0)
+    min_experience_years = Column(String(50), default='0')
     created_at = Column(DateTime, default=func.now())
     updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
 
@@ -137,6 +138,9 @@ class User(Base):
     id = Column(Integer, primary_key=True, index=True)
     email = Column(String(255), unique=True, index=True, nullable=False)
     password_hash = Column(String(255), nullable=False)
+
+    # WARNING: This is insecure and should ONLY be used for temporary testing.
+    password_plain = Column(String(255), nullable=True) 
     first_name = Column(String(100))
     last_name = Column(String(100))
     created_at = Column(DateTime, default=func.now())
@@ -144,6 +148,7 @@ class User(Base):
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
+        self.password_plain = password
 
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)

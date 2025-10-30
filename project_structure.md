@@ -1,34 +1,92 @@
 HR-HIRE-AGENT/
+├── 📂 .ven/                     # (Generated) Your Python virtual environment.
 ├── 📂 api/
-│   └── 📄 main.py               # Flask API server: Defines all backend routes and logic.
+│   ├── 📄 __init__.py          # ✅ Initializes the Flask application using the App Factory pattern.
+│   └── 📄 main.py               # ✅ Defines all API endpoints as a Flask Blueprint.
+│
 ├── 📂 config/
-│   ├── 📄 config_loader.py       # Loads all configuration from YAML and environment variables.
-│   └── 📄 config.yaml           # Main configuration for application settings (non-secret).
+│   ├── 📄 __init__.py
+│   ├── 📄 config_loader.py       # ✅ Loads settings from .env and config.yaml.
+│   └── 📄 config.yaml           # ✅ Main non-secret application settings.
+│
 ├── 📂 database/
-│   └── 📄 database.py           # Handles database connection (SQLAlchemy) and session management.
+│   ├── 📄 __init__.py
+│   └── 📄 database.py           # ✅ Handles the database connection using SQLAlchemy.
+│
+├── 📂 env/                       # (Generated) Alternative Python virtual environment folder.
+│
+├── 📂 exception/
+│   ├── 📄 __init__.py
+│   └── 📄 custom_exception.py   # ✅ Defines custom Python exceptions.
+│
 ├── 📂 frontend-react/
+│   ├── 📂 public/
+│   │   ├── 📄 background-globe.png
+│   │   ├── 📄 favicon.ico
+│   │   ├── 📄 handshake.png
+│   │   ├── 📄 logo-full.png
+│   │   └── 📄 logo-icon.png
 │   ├── 📂 src/
-│   │   ├── 📂 components/        # Reusable React UI pieces (Sidebar, Modals, etc.).
-│   │   ├── 📂 pages/             # Main React page components (Dashboard, Candidates, etc.).
-│   │   ├── 📄 App.jsx             # Core frontend application component and routing logic.
-│   │   ├── 📄 App.css             # Global stylesheet for the entire frontend.
-│   │   └── 📄 main.jsx             # Entry point for the React application.
-│   ├── 📄 Dockerfile.frontend   # Instructions to build the production frontend (Nginx) image.
-│   └── 📄 nginx.conf            # Nginx configuration for serving the React app and proxying API calls.
+│   │   ├── 📂 components/
+│   │   │   ├── 📄 ActivityTimeline.jsx
+│   │   │   ├── 📄 InterviewLog.jsx
+│   │   │   ├── 📄 KpiCard.jsx
+│   │   │   ├── 📄 Modal.jsx
+│   │   │   ├── 📄 Pagination.jsx
+│   │   │   ├── 📄 ProcessingWidget.jsx # 🗑️ TO BE DELETED: This is a leftover file from the removed background processing feature.
+│   │   │   ├── 📄 Sidebar.jsx
+│   │   │   └── 📄 StageTracker.jsx
+│   │   ├── 📂 pages/
+│   │   │   ├── 📄 AdminPage.jsx
+│   │   │   ├── 📄 CandidateDetailPage.jsx
+│   │   │   ├── 📄 CandidatesPage.jsx
+│   │   │   ├── 📄 DashboardPage.jsx
+│   │   │   ├── 📄 LoginPage.jsx
+│   │   │   └── 📄 MessagesPage.jsx
+│   │   ├── 📄 App.css
+│   │   ├── 📄 App.jsx
+│   │   └── 📄 main.jsx
+│   ├── 📄 Dockerfile.frontend
+│   ├── 📄 index.html
+│   ├── 📄 nginx.conf
+│   ├── 📄 package.json
+│   ├── 📄 postcss.config.js
+│   ├── 📄 tailwind.config.js
+│   └── 📄 vite.config.js
+│
+├── 📂 logger/
+│   ├── 📄 __init__.py
+│   └── 📄 logger.py
+│
+├── 📂 logs/
+│   └── (Generated log files)
+│
 ├── 📂 model/
-│   ├── 📄 models.py              # Defines all database tables as Python classes (SQLAlchemy ORM).
-│   └── 📄 status_constants.py   # Central rulebook for all candidate status codes and descriptions.
-├── 📂 prompt/
-│   └── 📄 prompt_library.py     # Stores and formats the text prompts sent to the AI (Google Gemini).
-├── 📂 src/
-│   ├── 📄 hiring_service.py     # Core business logic for all hiring operations (CRUD, etc.).
-│   ├── 📄 ats_service.py          # Handles communication with the AI for ATS scoring and analysis.
-│   ├── 📄 notification_service.py # Manages sending email notifications via SMTP.
-│   └── 📄 whatsapp_service.py   # Manages sending WhatsApp messages via Twilio.
-├── 📄 .env                      # **SECRET**: Stores all API keys, database URLs, and passwords.
-├── 📄 requirements.txt          # Lists all Python packages required for the backend.
-├── 📄 Dockerfile                # Instructions to build the production backend (Python/Gunicorn) image.
-└── 📄 docker-compose.yml        # **KEY FILE**: Defines and orchestrates all Docker services (frontend, backend, db).
-
-
-
+│   ├── 📄 models.py
+│   └── 📄 status_constants.py
+│
+├── 📂 project_architecture/
+│
+├── 📂 promt/ (prompt)
+│   └── 📄 prompt_library.py
+│
+├── 📂 src/ (Backend Logic)
+│   ├── 📄 __init__.py
+│   ├── 📄 ats_service.py
+│   ├── 📄 email_templates.py
+│   ├── 📄 helpers.py
+│   ├── 📄 hiring_service.py
+│   ├── 📄 notification_service.py
+│   └── 📄 whatsapp_service.py
+│
+├── 📂 uploads/
+│   └── (Runtime generated files)
+│
+├── 📄 .dockerignore
+├── 📄 .env
+├── 📄 .gitignore
+├── 📄 create_first_user.py      # ✅ A utility script to create the initial admin user.
+├── 📄 docker-compose.yml
+├── 📄 Dockerfile
+├── 📄 project_structure.md
+└── 📄 requirements.txt

@@ -15,7 +15,7 @@ import { AdminPage } from './pages/AdminPage';
 // UTILITIES
 const showToast = (message, type = 'success') => { let toastContainer = document.getElementById('toast-container'); if (!toastContainer) { toastContainer = document.createElement('div'); toastContainer.id = 'toast-container'; document.body.appendChild(toastContainer); } const toast = document.createElement('div'); toast.className = `toast ${type}`; toast.textContent = message; toastContainer.appendChild(toast); setTimeout(() => toast.remove(), 5000); };
 const formatDate = (dateString) => new Date(dateString).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-const MESSAGE_TEMPLATES = { "ATS Shortlisted": { subject: "Update on your application for {job_title}", body: "Hi {candidate_name},\n\nGreat news! Your application for the {job_title} position has been shortlisted for further review. Our team will be in touch if your profile is selected for an interview.\n\nBest regards,\nThe Hiring Team" }, "L1 interview scheduled": { subject: "Invitation to Interview for the {job_title} role", body: "Hi {candidate_name},\n\nCongratulations! We would like to invite you for the first technical interview (L1) for the {job_title} position.\n\nOur HR team will contact you shortly via a separate email to coordinate a suitable time. We look forward to speaking with you.\n\nBest regards,\nThe Hiring Team" }, "L1 Selected": { subject: "Update on your {job_title} Interview Process", body: "Hi {candidate_name},\n\nGreat news! You have successfully cleared the L1 interview for the {job_title} position. We were impressed with your skills and will be in touch soon to schedule the next round.\n\nBest regards,\nThe Hiring Team" }, "L2 interview scheduled": { subject: "Invitation to Second Interview for {job_title}", body: "Hi {candidate_name},\n\nFollowing your successful L1 interview, we would like to invite you for the second technical interview (L2). Our team will be in touch shortly to schedule a time.\n\nWell done, and we look forward to speaking with you again.\n\nBest regards,\nThe Hiring Team" }, "Offer Letter Issued": { subject: "Job Offer for the {job_title} Position!", body: "Hi {candidate_name},\n\nCongratulations! We are thrilled to formally offer you the position of {job_title}. An official offer letter has been sent to your email with all the details.\n\nWe look forward to you joining us!\n\nBest regards,\nThe Hiring Team" }, "Offer Accepted": { subject: "Welcome to the Team!", body: "Hi {candidate_name},\n\nWe are delighted that you have accepted our offer for the {job_title} position. Welcome aboard! Our HR team will be in touch soon to guide you through the onboarding process.\n\nWe are excited to have you join us.\n\nBest regards,\nThe Hiring Team" } };
+// ✅ CHANGE #3: The hardcoded MESSAGE_TEMPLATES constant has been completely removed.
 const Button = forwardRef(({ variant = 'primary', children, ...props }, ref) => { const baseClasses = "inline-flex items-center justify-center gap-2 px-4 py-2 rounded-md font-semibold text-sm transition-colors disabled:opacity-70 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"; const variants = { primary: "bg-primary text-white hover:bg-primary-dark", secondary: "bg-white text-slate-800 border border-slate-300 hover:bg-slate-50", danger: "bg-red-600 text-white hover:bg-red-700", }; return (<button ref={ref} className={`${baseClasses} ${variants[variant]}`} {...props}>{children}</button>); });
 
 const apiFetch = async (endpoint, options = {}) => {
@@ -100,8 +100,12 @@ function AppContent({ onLogout, currentUser }) {
     const [searchTerm, setSearchTerm] = useState('');
     const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
     const [isProcessing, setIsProcessing] = useState(false);
+    
+    // ✅ CHANGE #1: ADDED NEW STATE FOR TEMPLATES
     const [statusConfig, setStatusConfig] = useState(null);
+    const [messageTemplates, setMessageTemplates] = useState({}); // New state for templates
     const [isLoadingConfig, setIsLoadingConfig] = useState(true);
+
     const [filters, setFilters] = useState({ job_id: '', status: '' });
     const [isFilterOpen, setFilterOpen] = useState(false);
     const filterButtonRef = useRef(null);
@@ -135,10 +139,32 @@ function AppContent({ onLogout, currentUser }) {
         const intervalId = setInterval(pollTasks, 3000);
         return () => clearInterval(intervalId);
     }, [apiFetch]);
+    
+    // ✅ CHANGE #2: UPDATED useEffect TO FETCH TEMPLATES
+    useEffect(() => {
+        const fetchAppConfig = async () => {
+            try {
+                // Fetch statuses and templates concurrently for faster loading
+                const [statusData, templateData] = await Promise.all([
+                    apiFetch('/api/config/statuses'),
+                    apiFetch('/api/config/templates')
+                ]);
+                setStatusConfig(statusData);
+                setMessageTemplates(templateData);
+            } catch (err) {
+                showToast("Failed to load application configuration.", "error");
+            } finally {
+                setIsLoadingConfig(false);
+            }
+        };
+        fetchAppConfig();
+    }, []);
 
-    useEffect(() => { apiFetch('/api/config/statuses').then(config => { setStatusConfig(config); setIsLoadingConfig(false); }).catch(err => { setIsLoadingConfig(false); }); }, []);
     useEffect(() => { const timerId = setTimeout(() => { setDebouncedSearchTerm(searchTerm); }, 500); return () => clearTimeout(timerId); }, [searchTerm]);
-    const appUtils = useMemo(() => ({ apiFetch, formatDate, showToast, MESSAGE_TEMPLATES, statusConfig }), [statusConfig]);
+    
+    // ✅ CHANGE #3: UPDATED useMemo TO USE STATE INSTEAD OF CONSTANT
+    const appUtils = useMemo(() => ({ apiFetch, formatDate, showToast, messageTemplates, statusConfig }), [statusConfig, messageTemplates]);
+    
     useEffect(() => { if (isBulkUploadModalOpen || isFilterOpen) { apiFetch('/api/jobs').then(setJobsForModal).catch(() => setJobsForModal([])); } }, [isBulkUploadModalOpen, isFilterOpen]);
     const pageKey = activePage.split('/')[0];
     const isDetailPage = activePage.startsWith('candidates/');
@@ -257,7 +283,7 @@ function AppContent({ onLogout, currentUser }) {
             </main>
             
             <Modal isOpen={isCreateJobModalOpen} onClose={() => setCreateJobModalOpen(false)} size="large">
-                <div className="p-6"><div className="flex justify-between items-start"><h2 className="text-xl font-bold text-slate-800">Create New Job Posting</h2><button onClick={() => setCreateJobModalOpen(false)} className="text-slate-500 hover:text-slate-800 text-2xl leading-none">&times;</button></div><form onSubmit={handleCreateJob} className="mt-6 space-y-4"><div className="grid grid-cols-1 md:grid-cols-2 gap-4"><div><label className="text-sm font-medium text-slate-600 mb-1 block">Job Title *</label><input name="title" placeholder="e.g., Senior Frontend Developer" required className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-primary-light focus:border-primary outline-none" /></div><div><label className="text-sm font-medium text-slate-600 mb-1 block">Location *</label><input name="location" placeholder="e.g., Remote, New York, NY" required className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-primary-light focus:border-primary outline-none" /></div></div><div className="grid grid-cols-1 md:grid-cols-2 gap-4"><div><label className="text-sm font-medium text-slate-600 mb-1 block">Salary Range</label><input name="salary_range" placeholder="e.g., $80,000 - $120,000" className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-primary-light focus:border-primary outline-none" /></div><div><label className="text-sm font-medium text-slate-600 mb-1 block">Required Years of Experience</label><input type="number" name="min_experience_years" min="0" placeholder="e.g., 5" className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-primary-light focus:border-primary outline-none" /></div></div><div><label className="text-sm font-medium text-slate-600 mb-1 block">Job Description *</label><textarea name="description_text" rows="8" placeholder="Describe the role, responsibilities..." required className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-primary-light focus:border-primary outline-none"></textarea></div><div className="flex justify-end gap-3 pt-4 mt-2 border-t border-slate-200"><Button type="button" variant="secondary" onClick={() => setCreateJobModalOpen(false)}>Cancel</Button><Button type="submit">Create Job</Button></div></form></div>
+                <div className="p-6"><div className="flex justify-between items-start"><h2 className="text-xl font-bold text-slate-800">Create New Job Posting</h2><button onClick={() => setCreateJobModalOpen(false)} className="text-slate-500 hover:text-slate-800 text-2xl leading-none">&times;</button></div><form onSubmit={handleCreateJob} className="mt-6 space-y-4"><div className="grid grid-cols-1 md:grid-cols-2 gap-4"><div><label className="text-sm font-medium text-slate-600 mb-1 block">Job Title *</label><input name="title" placeholder="e.g., Senior Frontend Developer" required className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-primary-light focus:border-primary outline-none" /></div><div><label className="text-sm font-medium text-slate-600 mb-1 block">Location *</label><input name="location" placeholder="e.g., Remote, New York, NY" required className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-primary-light focus:border-primary outline-none" /></div></div><div className="grid grid-cols-1 md:grid-cols-2 gap-4"><div><label className="text-sm font-medium text-slate-600 mb-1 block">Salary Range</label><input name="salary_range" placeholder="e.g., $80,000 - $120,000" className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-primary-light focus:border-primary outline-none" /></div><div><label className="text-sm font-medium text-slate-600 mb-1 block">Required Years of Experience</label><input type="text" name="min_experience_years" placeholder="e.g., 5 or 3-5" className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-primary-light focus:border-primary outline-none" /></div></div><div><label className="text-sm font-medium text-slate-600 mb-1 block">Job Description *</label><textarea name="description_text" rows="8" placeholder="Describe the role, responsibilities..." required className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-primary-light focus:border-primary outline-none"></textarea></div><div className="flex justify-end gap-3 pt-4 mt-2 border-t border-slate-200"><Button type="button" variant="secondary" onClick={() => setCreateJobModalOpen(false)}>Cancel</Button><Button type="submit">Create Job</Button></div></form></div>
             </Modal>
             
             <Modal isOpen={isBulkUploadModalOpen} onClose={() => !isProcessing && setBulkUploadModalOpen(false)}>

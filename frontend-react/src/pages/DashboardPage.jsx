@@ -6,7 +6,38 @@ import { Doughnut } from 'react-chartjs-2';
 
 ChartJS.register(ArcElement, Tooltip, Legend);
 
-// NEW: A self-contained loader component for the dashboard
+// ✅ CHANGE #1: DEFINE THE CUSTOM PLUGIN TO DRAW TEXT IN THE CENTER
+const doughnutCenterText = {
+  id: 'doughnutCenterText',
+  afterDraw(chart) {
+    const { ctx, data } = chart;
+    const { top, left, width, height } = chart.chartArea;
+    const centerX = left + width / 2;
+    const centerY = top + height / 2;
+
+    // Calculate the total from the dataset
+    const total = data.datasets[0].data.reduce((sum, value) => sum + value, 0);
+
+    ctx.save();
+    
+    // Style and draw the 'Total' number
+    ctx.font = 'bold 36px Inter, sans-serif';
+    ctx.fillStyle = '#1E293B'; // Tailwind's slate-800
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(total, centerX, centerY - 8); // Position the number slightly above center
+
+    // Style and draw the 'Total' label
+    ctx.font = 'normal 14px Inter, sans-serif';
+    ctx.fillStyle = '#64748B'; // Tailwind's slate-500
+    ctx.fillText('Total', centerX, centerY + 18); // Position the label slightly below center
+
+    ctx.restore();
+  }
+};
+
+
+// A self-contained loader component for the dashboard
 const DashboardLoader = () => (
     <div className="flex flex-col justify-center items-center h-full min-h-[500px] text-center">
         <svg className="animate-spin h-10 w-10 text-primary mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -34,12 +65,10 @@ export function DashboardPage({ refreshTrigger, apiFetch, formatDate, showToast 
     const [actionMenu, setActionMenu] = useState({ visible: false, x: 0, y: 0, jobId: null });
     const [viewJobModal, setViewJobModal] = useState({ isOpen: false, job: null, isEditing: false });
     const selectAllCheckboxRef = useRef();
-
-    // NEW: Loading state for the page
     const [isLoading, setIsLoading] = useState(true);
 
     const fetchDashboardData = useCallback(async () => {
-        setIsLoading(true); // Set loading to true when fetching starts
+        setIsLoading(true);
         try {
             const [statsData, jobsData, distributionData] = await Promise.all([ 
                 apiFetch('/api/dashboard/stats'), 
@@ -49,30 +78,27 @@ export function DashboardPage({ refreshTrigger, apiFetch, formatDate, showToast 
             setStats(statsData); 
             setAllJobs(jobsData); 
             setFilteredJobs(jobsData);
-            const colors = ['#3B82F6', '#F59E0B', '#10B981', '#8B5CF6', '#EF4444'];
-            setChartData({ labels: distributionData.labels, datasets: [{ data: distributionData.data, backgroundColor: colors, borderColor: '#FFFFFF', borderWidth: 2 }] });
+            const colors = ['#3B82F6', '#F59E0B', '#10B981', '#8B5CF6', '#EF4444', '#64748B'];
+            setChartData({ labels: distributionData.labels, datasets: [{ data: distributionData.data, backgroundColor: colors, borderColor: '#FFFFFF', borderWidth: 4, hoverBorderWidth: 4, hoverOffset: 8 }] });
         } catch (error) { 
             console.error("Failed to load dashboard data"); 
         } finally {
-            setIsLoading(false); // Set loading to false when fetching completes (success or fail)
+            setIsLoading(false);
         }
     }, [apiFetch]);
 
     useEffect(() => { fetchDashboardData(); }, [fetchDashboardData, refreshTrigger]);
     
-    // All other useEffects and handlers remain unchanged
     useEffect(() => { const filtered = allJobs.filter(job => job.title.toLowerCase().includes(jobSearchTerm.toLowerCase())); setFilteredJobs(filtered); }, [jobSearchTerm, allJobs]);
     useEffect(() => { const handleOutsideClick = (e) => { if (actionMenu.visible && !e.target.closest('.action-dropdown')) { setActionMenu({ visible: false }); } }; document.addEventListener('click', handleOutsideClick); return () => document.removeEventListener('click', handleOutsideClick); }, [actionMenu.visible]);
     useEffect(() => { if (selectAllCheckboxRef.current) { const allVisibleIds = new Set(filteredJobs.map(j => j.id)); const selectedVisibleCount = [...selectedJobIds].filter(id => allVisibleIds.has(id)).length; selectAllCheckboxRef.current.checked = allVisibleIds.size > 0 && selectedVisibleCount === allVisibleIds.size; selectAllCheckboxRef.current.indeterminate = selectedVisibleCount > 0 && selectedVisibleCount < allVisibleIds.size; } }, [selectedJobIds, filteredJobs]);
 
-    // All other handler functions are unchanged
     const handleSelectJob = (jobId) => { setSelectedJobIds(prev => { const newSet = new Set(prev); if (newSet.has(jobId)) newSet.delete(jobId); else newSet.add(jobId); return newSet; }); };
     const handleSelectAllJobs = (e) => { const visibleJobIds = filteredJobs.map(j => j.id); if (e.target.checked) { setSelectedJobIds(prev => new Set([...prev, ...visibleJobIds])); } else { setSelectedJobIds(prev => { const newSet = new Set(prev); visibleJobIds.forEach(id => newSet.delete(id)); return newSet; }); } };
     const handleDeleteSelectedJobs = async () => { if (selectedJobIds.size === 0) return; if (window.confirm(`Are you sure you want to delete ${selectedJobIds.size} job(s)?`)) { try { await apiFetch('/api/jobs/bulk', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ job_ids: [...selectedJobIds] }) }); setSelectedJobIds(new Set()); fetchDashboardData(); } catch (error) {} } };
     const openActionMenu = (e, jobId) => { e.stopPropagation(); const rect = e.target.getBoundingClientRect(); setActionMenu({ visible: true, x: rect.right, y: rect.bottom + window.scrollY, jobId }); };
     const handleJobAction = async (action) => { const { jobId } = actionMenu; setActionMenu({ visible: false }); if (action === 'view') { try { const fullJobData = await apiFetch(`/api/jobs/${jobId}`); setViewJobModal({ isOpen: true, job: fullJobData, isEditing: false }); } catch (error) {} } else if (action === 'delete') { if (window.confirm('Are you sure you want to delete this job?')) { try { await apiFetch('/api/jobs/bulk', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ job_ids: [jobId] }) }); fetchDashboardData(); } catch (error) {} } } };
     
-    // ✅ CHANGE #2: UPDATED FUNCTION TO INCLUDE 'min_experience_years'
     const handleUpdateJob = async (e) => { 
         e.preventDefault(); 
         const formData = new FormData(e.target); 
@@ -81,7 +107,7 @@ export function DashboardPage({ refreshTrigger, apiFetch, formatDate, showToast 
             description_text: formData.get('description_text'), 
             location: formData.get('location'), 
             salary_range: formData.get('salary_range'),
-            min_experience_years: formData.get('min_experience_years') // This line is added
+            min_experience_years: formData.get('min_experience_years')
         }; 
         try { 
             await apiFetch(`/api/jobs/${viewJobModal.job.id}`, { 
@@ -94,7 +120,6 @@ export function DashboardPage({ refreshTrigger, apiFetch, formatDate, showToast 
         } catch(error) {} 
     };
 
-    // NEW: Conditional rendering based on isLoading state
     if (isLoading) {
         return <DashboardLoader />;
     }
@@ -118,7 +143,6 @@ export function DashboardPage({ refreshTrigger, apiFetch, formatDate, showToast 
                             <button onClick={() => { showToast("Refreshing data..."); fetchDashboardData(); }} className="p-2 text-slate-500 hover:bg-slate-100 rounded-md"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg></button>
                         </div>
                     </div>
-
                     <div className="overflow-y-auto custom-scrollbar">
                         <div className="overflow-x-auto">
                             <table className="w-full text-sm">
@@ -138,7 +162,7 @@ export function DashboardPage({ refreshTrigger, apiFetch, formatDate, showToast 
                                         <tr key={job.id} className={`border-t border-slate-200 ${selectedJobIds.has(job.id) ? 'bg-primary-light' : 'hover:bg-slate-50'}`}>
                                             <td className="px-4 py-3 text-center"><input type="checkbox" checked={selectedJobIds.has(job.id)} onChange={() => handleSelectJob(job.id)} className="rounded border-slate-300 text-primary focus:ring-primary-light" /></td>
                                             <td className="px-4 py-3 font-semibold text-slate-700">{job.title}</td>
-                                            <td className="px-4 py-3 text-center text-slate-600 font-medium">{job.min_experience_years > 0 ? `${job.min_experience_years} yrs` : 'N/A'}</td>
+                                            <td className="px-4 py-3 text-center text-slate-600 font-medium">{job.min_experience_years && job.min_experience_years !== '0' ? `${job.min_experience_years} yrs` : 'N/A'}</td>
                                             <td className="px-4 py-3 text-center text-slate-600">{job.candidate_count}</td>
                                             <td className="px-4 py-3"><div className="flex justify-center"><span className="px-2.5 py-0.5 rounded-full text-xs font-semibold inline-flex items-center gap-1.5 bg-green-100 text-green-700"><span className="w-1.5 h-1.5 bg-green-500 rounded-full"></span>Active</span></div></td>
                                             <td className="px-4 py-3 text-slate-600">{formatDate(job.created_at)}</td>
@@ -153,7 +177,32 @@ export function DashboardPage({ refreshTrigger, apiFetch, formatDate, showToast 
 
                 <section className="bg-white rounded-lg border border-slate-200 shadow-sm">
                     <div className="p-4 border-b border-slate-200"><h2 className="text-lg font-bold text-slate-800">Candidate Status Distribution</h2></div>
-                    <div className="p-4 h-80">{chartData.labels.length > 0 && <Doughnut data={chartData} options={{ responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' }}, cutout: '65%' }} />}</div>
+                    <div className="p-4 h-80">
+                        {chartData.labels.length > 0 && (
+                            <Doughnut 
+                                data={chartData} 
+                                // ✅ CHANGE #2: PASS THE CUSTOM PLUGIN TO THE CHART
+                                plugins={[doughnutCenterText]} 
+                                options={{ 
+                                    responsive: true, 
+                                    maintainAspectRatio: false, 
+                                    plugins: { 
+                                        legend: { 
+                                            position: 'bottom',
+                                            labels: {
+                                                padding: 20,
+                                                boxWidth: 12,
+                                                font: {
+                                                    size: 14
+                                                }
+                                            }
+                                        }
+                                    }, 
+                                    cutout: '70%' 
+                                }} 
+                            />
+                        )}
+                    </div>
                 </section>
             </div>
 
@@ -161,49 +210,18 @@ export function DashboardPage({ refreshTrigger, apiFetch, formatDate, showToast 
             
             <Modal isOpen={viewJobModal.isOpen} onClose={() => setViewJobModal({ isOpen: false, job: null, isEditing: false })} size="large">
                 <div className="p-6">
-                    <div className="flex justify-between items-start">
-                        <h2 className="text-xl font-bold text-slate-800">{viewJobModal.isEditing ? 'Edit Job' : 'Job Details'}</h2>
-                        <button onClick={() => setViewJobModal({ isOpen: false, job: null, isEditing: false })} className="text-slate-500 hover:text-slate-800 text-2xl leading-none">&times;</button>
-                    </div>
+                    <div className="flex justify-between items-start"><h2 className="text-xl font-bold text-slate-800">{viewJobModal.isEditing ? 'Edit Job' : 'Job Details'}</h2><button onClick={() => setViewJobModal({ isOpen: false, job: null, isEditing: false })} className="text-slate-500 hover:text-slate-800 text-2xl leading-none">&times;</button></div>
                     <form onSubmit={handleUpdateJob} className="mt-6 space-y-4">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label className="text-sm font-medium text-slate-600 mb-1 block">Job Title</label>
-                                <input name="title" type="text" defaultValue={viewJobModal.job?.title} readOnly={!viewJobModal.isEditing} required className={`w-full px-3 py-2 border border-slate-300 rounded-md outline-none ${viewJobModal.isEditing ? 'bg-white focus:ring-2 focus:ring-primary-light focus:border-primary' : 'bg-slate-50'}`} />
-                            </div>
-                            <div>
-                                <label className="text-sm font-medium text-slate-600 mb-1 block">Location</label>
-                                <input name="location" type="text" defaultValue={viewJobModal.job?.location} readOnly={!viewJobModal.isEditing} required className={`w-full px-3 py-2 border border-slate-300 rounded-md outline-none ${viewJobModal.isEditing ? 'bg-white focus:ring-2 focus:ring-primary-light focus:border-primary' : 'bg-slate-50'}`} />
-                            </div>
+                            <div><label className="text-sm font-medium text-slate-600 mb-1 block">Job Title</label><input name="title" type="text" defaultValue={viewJobModal.job?.title} readOnly={!viewJobModal.isEditing} required className={`w-full px-3 py-2 border border-slate-300 rounded-md outline-none ${viewJobModal.isEditing ? 'bg-white focus:ring-2 focus:ring-primary-light focus:border-primary' : 'bg-slate-50'}`} /></div>
+                            <div><label className="text-sm font-medium text-slate-600 mb-1 block">Location</label><input name="location" type="text" defaultValue={viewJobModal.job?.location} readOnly={!viewJobModal.isEditing} required className={`w-full px-3 py-2 border border-slate-300 rounded-md outline-none ${viewJobModal.isEditing ? 'bg-white focus:ring-2 focus:ring-primary-light focus:border-primary' : 'bg-slate-50'}`} /></div>
                         </div>
-
-                        {/* ✅ CHANGE #1: ADDED THE NEW INPUT FIELD FOR EXPERIENCE */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label className="text-sm font-medium text-slate-600 mb-1 block">Salary Range</label>
-                                <input name="salary_range" type="text" defaultValue={viewJobModal.job?.salary_range} readOnly={!viewJobModal.isEditing} className={`w-full px-3 py-2 border border-slate-300 rounded-md outline-none ${viewJobModal.isEditing ? 'bg-white focus:ring-2 focus:ring-primary-light focus:border-primary' : 'bg-slate-50'}`} />
-                            </div>
-                            <div>
-                                <label className="text-sm font-medium text-slate-600 mb-1 block">Min. Experience (years)</label>
-                                <input 
-                                    name="min_experience_years" 
-                                    type="number" 
-                                    min="0"
-                                    defaultValue={viewJobModal.job?.min_experience_years} 
-                                    readOnly={!viewJobModal.isEditing} 
-                                    className={`w-full px-3 py-2 border border-slate-300 rounded-md outline-none ${viewJobModal.isEditing ? 'bg-white focus:ring-2 focus:ring-primary-light focus:border-primary' : 'bg-slate-50'}`} 
-                                />
-                            </div>
+                            <div><label className="text-sm font-medium text-slate-600 mb-1 block">Salary Range</label><input name="salary_range" type="text" defaultValue={viewJobModal.job?.salary_range} readOnly={!viewJobModal.isEditing} className={`w-full px-3 py-2 border border-slate-300 rounded-md outline-none ${viewJobModal.isEditing ? 'bg-white focus:ring-2 focus:ring-primary-light focus:border-primary' : 'bg-slate-50'}`} /></div>
+                            <div><label className="text-sm font-medium text-slate-600 mb-1 block">Min. Experience (years)</label><input name="min_experience_years" type="text" placeholder="e.g., 5 or 3-5" defaultValue={viewJobModal.job?.min_experience_years} readOnly={!viewJobModal.isEditing} className={`w-full px-3 py-2 border border-slate-300 rounded-md outline-none ${viewJobModal.isEditing ? 'bg-white focus:ring-2 focus:ring-primary-light focus:border-primary' : 'bg-slate-50'}`} /></div>
                         </div>
-
-                        <div>
-                            <label className="text-sm font-medium text-slate-600 mb-1 block">Job Description</label>
-                            <textarea name="description_text" rows="12" defaultValue={viewJobModal.job?.description_text} readOnly={!viewJobModal.isEditing} required className={`w-full px-3 py-2 border border-slate-300 rounded-md outline-none ${viewJobModal.isEditing ? 'bg-white focus:ring-2 focus:ring-primary-light focus:border-primary' : 'bg-slate-50'}`}></textarea>
-                        </div>
-                        <div className="flex justify-end gap-3 pt-4 mt-2 border-t border-slate-200">
-                            <Button type="button" variant="secondary" onClick={() => setViewJobModal({ isOpen: false, job: null, isEditing: false })}>Close</Button>
-                            {viewJobModal.isEditing ? (<Button type="submit">Save Changes</Button>) : (<Button type="button" variant="secondary" onClick={() => setViewJobModal(prev => ({ ...prev, isEditing: true }))}>Edit</Button>)}
-                        </div>
+                        <div><label className="text-sm font-medium text-slate-600 mb-1 block">Job Description</label><textarea name="description_text" rows="12" defaultValue={viewJobModal.job?.description_text} readOnly={!viewJobModal.isEditing} required className={`w-full px-3 py-2 border border-slate-300 rounded-md outline-none ${viewJobModal.isEditing ? 'bg-white focus:ring-2 focus:ring-primary-light focus:border-primary' : 'bg-slate-50'}`}></textarea></div>
+                        <div className="flex justify-end gap-3 pt-4 mt-2 border-t border-slate-200"><Button type="button" variant="secondary" onClick={() => setViewJobModal({ isOpen: false, job: null, isEditing: false })}>Close</Button>{viewJobModal.isEditing ? (<Button type="submit">Save Changes</Button>) : (<Button type="button" variant="secondary" onClick={(e) => { e.preventDefault(); setViewJobModal(prev => ({ ...prev, isEditing: true })); }}>Edit</Button>)}</div>
                     </form>
                 </div>
             </Modal>

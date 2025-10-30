@@ -1,82 +1,26 @@
-
-# Deployment docker 
-# version: '3.8'
-
-# services:
-#   backend:
-#     build:
-#       context: .
-#       dockerfile: Dockerfile
-#     container_name: hr_agent_backend
-#     env_file:
-#       - .env        # contains DATABASE_URL
-#     volumes:
-#       - ./:/app
-#     networks:
-#       - app-network
-#     # no depends_on: db because we are not running a local DB
-
-#   frontend:
-#     build:
-#       context: ./frontend-react
-#       dockerfile: Dockerfile.frontend
-#     container_name: hr_agent_frontend
-#     ports:
-#       - "9000:80"
-#     depends_on:
-#       - backend
-#     networks:
-#       - app-network
-
-# networks:
-#   app-network:
-#     driver: bridge
-
-
-
-
-# Local_db_with_local_running_docker
-
 version: '3.8'
 
 services:
-  db:
-    image: mysql:8.0
-    container_name: hr_agent_db
-    environment:
-      MYSQL_ROOT_PASSWORD: "Venu2425"
-      MYSQL_DATABASE: "hr_hire_db"
-    volumes:
-      - db-data:/var/lib/mysql
-    # expose host port 3307 -> container 3306 (optional). Use only if you need host access to mysql.
-    ports:
-      - "3307:3306"
-    networks:
-      - app-network
-
   backend:
     build:
       context: .
       dockerfile: Dockerfile
     container_name: hr_agent_backend
     env_file:
-      - .env
+      - .env        # contains DATABASE_URL
     volumes:
       - ./:/app
-    depends_on:
-      - db
-    ports:
-      - "5000:5000"   # publish backend to host so browser (localhost) can reach it
     networks:
       - app-network
+    # no depends_on: db because we are not running a local DB
 
   frontend:
     build:
       context: ./frontend-react
-      dockerfile: Dockerfile  # change to Dockerfile if that's what you actually use
+      dockerfile: Dockerfile.frontend
     container_name: hr_agent_frontend
     ports:
-      - "80:80"
+      - "9000:80"
     depends_on:
       - backend
     networks:
@@ -85,6 +29,3 @@ services:
 networks:
   app-network:
     driver: bridge
-
-volumes:
-  db-data:

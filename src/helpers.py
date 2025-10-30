@@ -118,41 +118,87 @@ def extract_raw_text_from_file(file_path: str) -> str:
         return ""
 
 
+# def parse_resume(file_path: str) -> tuple[str, dict]:
+#     """
+#     Parses a resume file using pyresparser to extract structured data,
+#     and also returns the raw text content.
+#     Returns a tuple: (raw_text: str, structured_data: dict)
+#     """
+#     if not os.path.exists(file_path):
+#         logger.warning(f"Resume file not found for parsing: {file_path}")
+#         return "", {}
+
+#     raw_text = extract_raw_text_from_file(file_path)
+#     structured_data = {}
+
+#     try:
+#         # pyresparser loads 'en_core_web_sm' internally, but our _initialize_nlp_resources
+#         # ensures it's present for pyresparser to find.
+#         parser = ResumeParser(file_path)
+#         data = parser.get_extracted_data()
+
+#         if data:
+#             structured_data = {k: (v if v is not None else ([] if isinstance(data.get(k), list) else '')) 
+#                                for k, v in data.items()}
+#             logger.info(f"Successfully extracted structured data from {file_path} using pyresparser.")
+#         else:
+#             logger.warning(f"pyresparser could not extract structured data from {file_path}.")
+
+#     except Exception as e:
+#         logger.error(f"Error during pyresparser extraction for {file_path}: {e}", exc_info=True) # <-- Added exc_info=True
+#         # If pyresparser fails, structured_data remains empty {}
+
+#     if not raw_text and structured_data.get('raw_text'):
+#         raw_text = structured_data['raw_text']
+
+#     logger.info(f"Final text content extracted from {file_path}")
+#     return raw_text.strip(), structured_data
+
+
 def parse_resume(file_path: str) -> tuple[str, dict]:
     """
-    Parses a resume file using pyresparser to extract structured data,
-    and also returns the raw text content.
-    Returns a tuple: (raw_text: str, structured_data: dict)
+    Parses a resume file. It first attempts fast text extraction. If that fails,
+    it uses pyresparser as a complete fallback.
     """
     if not os.path.exists(file_path):
         logger.warning(f"Resume file not found for parsing: {file_path}")
         return "", {}
 
+    # Step 1: Attempt primary, fast text extraction
     raw_text = extract_raw_text_from_file(file_path)
     structured_data = {}
 
+    # Step 2 (Your Optimization): Check if primary extraction worked.
+    if raw_text:
+        logger.info(f"Successfully extracted text from {file_path} using primary with pypdf2 method.")
+        # We have the text, so we can return immediately and skip pyresparser.
+        # We will have no structured data fallback, but this is much faster.
+        return raw_text.strip(), {}
+
+    # Step 3: If we are here, it means raw_text is empty. Use pyresparser as a fallback.
+    logger.warning(f"Primary text extraction failed for {file_path}. Falling back to pyresparser.")
     try:
-        # pyresparser loads 'en_core_web_sm' internally, but our _initialize_nlp_resources
-        # ensures it's present for pyresparser to find.
         parser = ResumeParser(file_path)
         data = parser.get_extracted_data()
 
         if data:
             structured_data = {k: (v if v is not None else ([] if isinstance(data.get(k), list) else '')) 
                                for k, v in data.items()}
-            logger.info(f"Successfully extracted structured data from {file_path} using pyresparser.")
+            
+            # Use the text extracted by pyresparser
+            raw_text = data.get('text', '')
+            logger.info(f"Successfully extracted text and data from {file_path} using pyresparser fallback.")
         else:
-            logger.warning(f"pyresparser could not extract structured data from {file_path}.")
+            logger.error(f"Fallback pyresparser also failed to extract any data from {file_path}.")
+            return "", {}
 
     except Exception as e:
-        logger.error(f"Error during pyresparser extraction for {file_path}: {e}", exc_info=True) # <-- Added exc_info=True
-        # If pyresparser fails, structured_data remains empty {}
+        logger.error(f"Critical error during pyresparser fallback for {file_path}: {e}", exc_info=True)
+        return "", {}
 
-    if not raw_text and structured_data.get('raw_text'):
-        raw_text = structured_data['raw_text']
-
-    logger.info(f"Final text content extracted from {file_path}")
     return raw_text.strip(), structured_data
+
+
 
 
 def calculate_overall_interview_score(interviews: list) -> float:

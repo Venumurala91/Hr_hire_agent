@@ -86,7 +86,7 @@ class HiringService:
         logger.warning(f"Could not format phone number into E.164 standard: {phone_number}")
         return None
 
-    def create_job_description(self, title: str, description_text: str, location: str, salary_range: str) -> JobDescription:
+    def create_job_description(self, title: str, description_text: str, location: str, salary_range: str,min_experience_years: str) -> JobDescription:
         """
         Creates a new job description in the database.
         :param title: The title of the job.
@@ -101,7 +101,8 @@ class HiringService:
                 title=title, 
                 description_text=description_text,
                 location=location,
-                salary_range=salary_range
+                salary_range=salary_range,
+                min_experience_years=min_experience_years
             )
             self.db.add(jd)
             self.db.commit()
@@ -146,7 +147,7 @@ class HiringService:
             raise NotFoundError(f"Candidate with ID {candidate_id} not found.")
         return candidate
         
-    def _process_single_resume_task(self, file_path: str, jd_description_text: str) -> dict:
+    def _process_single_resume_task(self, file_path: str, jd_description_text: str,min_experience_req: str) -> dict:
         """
         A single unit of work for processing one resume against a job description.
         This function is designed to be run in a separate thread.
@@ -160,7 +161,7 @@ class HiringService:
                 raise APIError("Failed to extract content from resume.")
             
             # The ATS service is expected to return a full analysis, including work history
-            ats_result = self.ats_service.generate_ats_score(resume_text, structured_data, jd_description_text)
+            ats_result = self.ats_service.generate_ats_score(resume_text, structured_data, jd_description_text,min_experience_req)
             
             name = ats_result.get('candidate_name', '').strip() or structured_data.get('name', '').strip()
             email = ats_result.get('email', '').strip() or structured_data.get('email', '').strip()
@@ -178,38 +179,48 @@ class HiringService:
         except Exception as e:
             return {"file_name": os.path.basename(file_path), "error": str(e), "original_path": file_path}
 
-    def bulk_process_and_shortlist_resumes(self, resume_file_paths: list[str], jd_id: int, ats_threshold: float, changed_by: str) -> dict:
+    def bulk_process_and_shortlist_resumes(self, resume_file_paths: list[str], jd_id: int, ats_threshold: float, changed_by: str, progress_callback=None):
         """
-        Processes a batch of resumes in parallel and creates candidate records.
+        Processes a batch of resumes in parallel using a thread pool and reports progress.
         :param resume_file_paths: A list of paths to the uploaded resume files.
         :param jd_id: The ID of the job description to screen against.
         :param ats_threshold: The minimum ATS score required to be shortlisted.
         :param changed_by: Identifier for who initiated this bulk process.
-        :return: A summary dictionary of the processing results.
+        :param progress_callback: A function to call after each resume is processed to report status.
         """
         jd = self.get_job_description(jd_id)
-        summary = {"processed": 0, "shortlisted": 0, "rejected": 0, "failed": 0}
         
-        # Use a thread pool to process resumes concurrently for better performance
+        # Use a thread pool to process resumes concurrently based on the config setting.
         with ThreadPoolExecutor(max_workers=self.max_workers_resume_processing) as executor:
-            future_to_resume = {executor.submit(self._process_single_resume_task, rp, jd.description_text): rp for rp in resume_file_paths}
+            # Schedule each resume processing task and get a "future" object for it.
+            future_to_resume = {
+                executor.submit(self._process_single_resume_task, rp, jd.description_text, jd.min_experience_years): rp 
+                for rp in resume_file_paths
+            }
+            
+            # As each task completes, process its result.
             for future in as_completed(future_to_resume):
-                summary["processed"] += 1
                 try:
                     data = future.result()
                     if data.get("error"):
-                        summary["failed"] += 1
+                        logger.error(f"Failed to process resume {data.get('file_name')}: {data.get('error')}")
+                        if progress_callback:
+                            progress_callback('failed')
                         continue
                     
                     is_shortlisted = data.get('ats_score', 0.0) >= ats_threshold
                     self._create_candidate_from_processed_data(data, jd, changed_by, is_shortlisted)
-                    summary["shortlisted" if is_shortlisted else "rejected"] += 1
+                    self.db.commit()  # Commit after each successful candidate creation
+                    
+                    if progress_callback:
+                        progress_callback('shortlisted' if is_shortlisted else 'rejected')
+
                 except Exception as e:
-                    logger.error(f"Error creating candidate from processed data: {e}", exc_info=True)
-                    summary["failed"] += 1
-        
-        self.db.commit()
-        return summary
+                    self.db.rollback() # Rollback if candidate creation fails
+                    logger.error(f"Critical error creating candidate from processed data: {e}", exc_info=True)
+                    if progress_callback:
+                        progress_callback('failed')
+
 
     def _create_candidate_from_processed_data(self, data: dict, jd: JobDescription, changed_by: str, is_shortlisted: bool):
         """
@@ -292,26 +303,36 @@ class HiringService:
 
     def bulk_delete_candidates(self, c_ids: list[int]):
         """
-        Deletes multiple candidates and all their related child records.
-        This function correctly handles foreign key constraints by deleting child records first.
-        :param c_ids: A list of candidate IDs to delete.
-        :raises DatabaseError: If the database operation fails.
+        Deletes multiple candidates, their related child records, and their resume files.
         """
         if not c_ids: return
+        
         try:
-            # Step 1: Delete all "child" records first to avoid foreign key violations.
+            # Step 1: Find the candidates to get their resume paths BEFORE deleting them.
+            candidates_to_delete = self.db.query(Candidate).filter(Candidate.id.in_(c_ids)).all()
+            resume_paths_to_delete = [c.resume_path for c in candidates_to_delete if c.resume_path]
+
+            # Step 2: Delete all database child records first.
             self.db.query(Interview).filter(Interview.candidate_id.in_(c_ids)).delete(synchronize_session=False)
             self.db.query(HRDiscussion).filter(HRDiscussion.candidate_id.in_(c_ids)).delete(synchronize_session=False)
             self.db.query(Verification).filter(Verification.candidate_id.in_(c_ids)).delete(synchronize_session=False)
             self.db.query(StatusHistory).filter(StatusHistory.candidate_id.in_(c_ids)).delete(synchronize_session=False)
             
-            # Step 2: Now that child records are gone, delete the "parent" candidates.
+            # Step 3: Now delete the parent candidate records.
             self.db.query(Candidate).filter(Candidate.id.in_(c_ids)).delete(synchronize_session=False)
             
-            self.db.commit()
-            logger.info(f"Successfully deleted {len(c_ids)} candidates and their related data.")
+            # Step 4: Now that the database transaction is prepared, delete the physical files.
+            for path in resume_paths_to_delete:
+                try:
+                    # Construct absolute path for safety
+                    absolute_path = os.path.abspath(path)
+                    if os.path.exists(absolute_path):
+                        os.remove(absolute_path)
+                        logger.info(f"Deleted resume file: {absolute_path}")
+                except Exception as file_error:
+                    logger.error(f"Error deleting resume file {path}: {file_error}")
+            
         except Exception as e:
-            self.db.rollback()
             raise DatabaseError(f"Failed to bulk delete candidates: {e}")
 
     def bulk_delete_jobs(self, j_ids: list[int]):
@@ -458,7 +479,7 @@ class HiringService:
             Candidate.current_status != excluded_status
         ).order_by(Candidate.updated_at.desc()).all()
     
-    def update_job_description(self, job_id: int, title: str, desc: str, location: str, salary: str, min_experience_years: int) -> JobDescription:
+    def update_job_description(self, job_id: int, title: str, desc: str, location: str, salary: str, min_experience_years: str) -> JobDescription:
         """
         Updates the details of an existing job description.
         """
@@ -470,8 +491,6 @@ class HiringService:
             jd.location = location
             jd.salary_range = salary
             jd.min_experience_years = min_experience_years
-            self.db.commit()
-            self.db.refresh(jd)
             return jd
         except Exception as e:
             self.db.rollback()
