@@ -18,33 +18,25 @@ class ATSService:
         self.model = genai.GenerativeModel('models/gemini-2.5-flash')
         self.ats_weights = config.ats_weights # Weights from config.yaml
 
-    def generate_ats_score(self, resume_text: str, structured_resume_data: dict, jd_text: str) -> dict:
-        """
-        Generates an ATS score for a candidate's resume against a job description
-        using Google Gemini, forcing a JSON output for reliability.
-        """
+    def generate_ats_score(self, resume_text: str, structured_resume_data: dict, jd_text: str, experience_requirement: str) -> dict:
         if not resume_text or not jd_text:
             raise ATSProcessingError("Resume text or Job Description text cannot be empty for ATS scoring.")
 
-        prompt = Prompts.ats_scoring_prompt(resume_text, jd_text, structured_resume_data, self.ats_weights)
+        # Note: structured_resume_data and ats_weights are no longer used in the new prompt, but we'll leave them for now.
+        prompt = Prompts.ats_scoring_prompt(resume_text, jd_text, experience_requirement)
         
-        # --- THIS IS THE CRITICAL FIX ---
-        # We explicitly tell the model to output JSON.
         generation_config = genai.GenerationConfig(
             response_mime_type="application/json"
         )
         
         try:
             logger.info("Sending ATS scoring request to Google Gemini (forcing JSON)...")
-            # Pass the generation_config to the model
             response = self.model.generate_content(
                 prompt,
                 generation_config=generation_config
             )
             
-            # The response.text will now be a clean JSON string
             raw_response_text = response.text
-            
             ats_result = json.loads(raw_response_text)
             logger.info(f"ATS scoring successful. Extracted name: {ats_result.get('candidate_name')}, Email: {ats_result.get('email')}")
             return ats_result

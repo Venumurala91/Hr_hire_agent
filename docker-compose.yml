@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: hr_agent_backend
+    env_file:
+      - .env        # contains DATABASE_URL
+    volumes:
+      - ./:/app
+    networks:
+      - app-network
+    # no depends_on: db because we are not running a local DB
+
+  frontend:
+    build:
+      context: ./frontend-react
+      dockerfile: Dockerfile.frontend
+    container_name: hr_agent_frontend
+    ports:
+      - "9000:80"
+    depends_on:
+      - backend
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge

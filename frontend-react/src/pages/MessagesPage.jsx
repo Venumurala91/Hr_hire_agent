@@ -11,7 +11,15 @@ const Button = ({ variant = 'primary', children, ...props }) => {
     return <button className={`${baseClasses} ${variants[variant]}`} {...props}>{children}</button>;
 };
 
-export function MessagesPage({ apiFetch, showToast, MESSAGE_TEMPLATES, statusConfig }) {
+// ✅ CHANGE #1: ADD A HELPER FUNCTION TO CONVERT HTML TO PLAIN TEXT
+const htmlToPlainText = (htmlString) => {
+    if (!htmlString) return '';
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = htmlString;
+    return tempDiv.textContent || tempDiv.innerText || '';
+};
+
+export function MessagesPage({ apiFetch, showToast, messageTemplates, statusConfig }) {
     const [allCandidates, setAllCandidates] = useState([]);
     const [groupedByStatus, setGroupedByStatus] = useState({});
     const [activeStatus, setActiveStatus] = useState(null);
@@ -36,16 +44,23 @@ export function MessagesPage({ apiFetch, showToast, MESSAGE_TEMPLATES, statusCon
 
     const handleGroupClick = (status) => {
         setActiveStatus(status); setSelectedIds(new Set());
-        const templateKey = Object.keys(MESSAGE_TEMPLATES).find(k => k === status) || '';
+        const templateKey = Object.keys(messageTemplates).find(k => k === status) || '';
         setSelectedTemplate(templateKey);
-        const template = MESSAGE_TEMPLATES[templateKey] || { subject: '', body: '' };
-        setSubject(template.subject); setMessage(template.body);
+        const template = messageTemplates[templateKey] || { subject: '', body: '' };
+        
+        // ✅ CHANGE #2: USE THE HELPER FUNCTION HERE
+        setSubject(template.subject || '');
+        setMessage(htmlToPlainText(template.body || ''));
     };
     
     const handleTemplateChange = (e) => {
-        const key = e.target.value; setSelectedTemplate(key);
-        const template = MESSAGE_TEMPLATES[key] || { subject: '', body: '' };
-        setSubject(template.subject); setMessage(template.body);
+        const key = e.target.value; 
+        setSelectedTemplate(key);
+        const template = messageTemplates[key] || { subject: '', body: '' };
+        
+        // ✅ CHANGE #3: USE THE HELPER FUNCTION HERE AS WELL
+        setSubject(template.subject || '');
+        setMessage(htmlToPlainText(template.body || ''));
     };
 
     const handleSelectAll = (e) => {
@@ -70,8 +85,8 @@ export function MessagesPage({ apiFetch, showToast, MESSAGE_TEMPLATES, statusCon
 
     const candidatesInGroup = groupedByStatus[activeStatus] || [];
     const sampleCandidate = allCandidates.find(c => selectedIds.has(c.id)) || candidatesInGroup[0] || { name: 'John Doe', job_title: 'Sample Role' };
-    const personalizedSubject = subject.replace(/{candidate_name}/g, sampleCandidate.name).replace(/{job_title}/g, sampleCandidate.job_title);
-    const personalizedBody = message.replace(/{candidate_name}/g, sampleCandidate.name).replace(/{job_title}/g, sampleCandidate.job_title);
+    const personalizedSubject = (subject || '').replace(/{candidate_name}/g, sampleCandidate.name).replace(/{job_title}/g, sampleCandidate.job_title);
+    const personalizedBody = (message || '').replace(/{candidate_name}/g, sampleCandidate.name).replace(/{job_title}/g, sampleCandidate.job_title);
 
 
     return (
@@ -115,7 +130,13 @@ export function MessagesPage({ apiFetch, showToast, MESSAGE_TEMPLATES, statusCon
                 <form className="flex-1 flex flex-col" onSubmit={handleSubmit}>
                     <div className="p-4 space-y-4 overflow-y-auto flex-1 custom-scrollbar">
                         <div className="p-1 bg-slate-200 rounded-lg flex"><button type="button" className={`flex-1 py-1.5 text-sm font-semibold rounded-md transition-all ${activeChannel === 'email' ? 'bg-white shadow-sm' : ''}`} onClick={() => setActiveChannel('email')}>Email</button><button type="button" className={`flex-1 py-1.5 text-sm font-semibold rounded-md transition-all ${activeChannel === 'whatsapp' ? 'bg-white shadow-sm' : ''}`} onClick={() => setActiveChannel('whatsapp')}>WhatsApp</button></div>
-                        <div><label className="text-sm font-medium text-slate-600 mb-1 block">Use a Template</label><select value={selectedTemplate} onChange={handleTemplateChange} className="w-full px-3 py-2 border border-slate-300 rounded-md bg-white focus:ring-2 focus:ring-primary-light focus:border-primary outline-none"><option value="">-- No Template --</option>{Object.keys(MESSAGE_TEMPLATES).map(key => <option key={key} value={key}>{key}</option>)}</select></div>
+                        <div>
+                            <label className="text-sm font-medium text-slate-600 mb-1 block">Use a Template</label>
+                            <select value={selectedTemplate} onChange={handleTemplateChange} className="w-full px-3 py-2 border border-slate-300 rounded-md bg-white focus:ring-2 focus:ring-primary-light focus:border-primary outline-none">
+                                <option value="">-- No Template --</option>
+                                {Object.keys(messageTemplates).map(key => <option key={key} value={key}>{key}</option>)}
+                            </select>
+                        </div>
                         {activeChannel === 'email' && <div><label className="text-sm font-medium text-slate-600 mb-1 block">Subject</label><input type="text" value={subject} onChange={e => setSubject(e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-primary-light focus:border-primary outline-none" /></div>}
                         <div><label className="text-sm font-medium text-slate-600 mb-1 block">Message</label><textarea value={message} onChange={e => setMessage(e.target.value)} rows="8" className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-primary-light focus:border-primary outline-none"></textarea><p className="text-xs text-slate-500 mt-1">Placeholders: {`{candidate_name}`}, {`{job_title}`}</p></div>
                     </div>
@@ -123,7 +144,14 @@ export function MessagesPage({ apiFetch, showToast, MESSAGE_TEMPLATES, statusCon
                 </form>
             </div>
             <Modal isOpen={isPreviewModalOpen} onClose={() => setPreviewModalOpen(false)}>
-                <div className="p-6"><div className="flex justify-between items-start mb-4"><h2 className="text-xl font-bold text-slate-800">Preview</h2><button onClick={() => setPreviewModalOpen(false)} className="text-slate-500 hover:text-slate-800 text-2xl leading-none">&times;</button></div>{activeChannel === 'email' && <div className="pb-4 mb-4 border-b border-slate-200"><strong>Subject:</strong> {personalizedSubject}</div>}<div className="text-slate-600" dangerouslySetInnerHTML={{ __html: personalizedBody.replace(/\n/g, '<br />') }}></div></div>
+                <div className="p-6">
+                    <div className="flex justify-between items-start mb-4">
+                        <h2 className="text-xl font-bold text-slate-800">Preview</h2>
+                        <button onClick={() => setPreviewModalOpen(false)} className="text-slate-500 hover:text-slate-800 text-2xl leading-none">&times;</button>
+                    </div>
+                    {activeChannel === 'email' && <div className="pb-4 mb-4 border-b border-slate-200"><strong>Subject:</strong> {personalizedSubject}</div>}
+                    <div className="text-slate-600" dangerouslySetInnerHTML={{ __html: personalizedBody.replace(/\n/g, '<br />') }}></div>
+                </div> {/* <-- THIS IS THE MISSING CLOSING TAG */}
             </Modal>
         </div>
     );

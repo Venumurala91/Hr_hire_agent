@@ -6,6 +6,8 @@ from config.config_loader import config
 from logger.logger import logger
 from exception.custom_exception import WhatsAppMessagingError
 
+
+# added_what'sappservice
 class WhatsAppService:
     def __init__(self):
         self.account_sid = config.TWILIO_ACCOUNT_SID

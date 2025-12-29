@@ -1,167 +1,174 @@
-Of course. Your existing README is good, but it's now outdated because of the major frontend upgrade to React.
+# 🚀 HR Hire Agent
 
-A great README for this project needs to clearly explain the modern, decoupled architecture and provide separate, easy-to-follow instructions for setting up both the backend and the frontend.
-
-Here is a completely rewritten, professional `README.md` file that reflects your current project structure. It's designed to be clear and comprehensive for any new developer visiting your repository.
+**HR Hire Agent** is a modern, full-stack web application designed to automate and streamline the recruitment process. Powered by a Python backend with Google Gemini integration and a responsive React frontend, this tool helps HR professionals manage the entire hiring pipeline, from automated resume screening to candidate onboarding.
 
 ---
 
-# HR Hire Agent
+## ✨ Key Features
 
-An intelligent, end-to-end hiring platform designed to streamline the recruitment process. This application leverages AI for automated resume screening and provides a modern, interactive user interface for HR professionals to manage the entire hiring pipeline.
+*   **🤖 AI-Powered Resume Screening:** Automatically parse resumes, extract key information (skills, experience, contact info), and calculate an ATS (Applicant Tracking System) score against a job description using Google's Gemini AI.
+*   **📂 Bulk Resume Upload:** Process dozens of resumes simultaneously for a specific job posting, instantly shortlisting or rejecting candidates based on a configurable ATS threshold.
+*   **🪜 Visual Hiring Pipeline:** Track candidates through customizable stages of the hiring process (Screening, L1/L2 Interviews, Document Verification, Offer, Onboarding) with a clear, visual progress bar.
+*   **📊 Interactive Dashboard:** Get a high-level overview of your recruitment efforts with key metrics, active job postings, and a chart showing candidate status distribution.
+*   **✉️ Integrated Communication:** Send bulk emails and WhatsApp messages to candidates directly from the application using pre-defined, customizable templates.
+*   **📋 Detailed Candidate Profiles:** Dive deep into each candidate's profile with their AI analysis summary, matched skills, interview feedback logs, and a complete activity timeline.
+*   **🐳 Flexible Deployment:** Run easily with Docker for a one-command setup, or configure manually for local development.
 
-The system is built with a modern decoupled architecture, featuring a powerful **Python (Flask) backend API** and a dynamic **React single-page application (SPA)** frontend.
+---
 
-## 📸 Screenshots
+## 🛠️ Tech Stack
 
-*(It is highly recommended to replace these placeholders with actual screenshots of your application)*
+| Component         | Technology                                                                                                  |
+| ----------------- | ----------------------------------------------------------------------------------------------------------- |
+| **Frontend**      | ![React](https://img.shields.io/badge/-React-61DAFB?logo=react&logoColor=white) ![Vite](https://img.shields.io/badge/-Vite-646CFF?logo=vite&logoColor=white) ![Chart.js](https://img.shields.io/badge/-Chart.js-FF6384?logo=chart.js&logoColor=white) |
+| **Backend**       | ![Python](https://img.shields.io/badge/-Python-3776AB?logo=python&logoColor=white) ![Flask](https://img.shields.io/badge/-Flask-000000?logo=flask&logoColor=white) ![SQLAlchemy](https://img.shields.io/badge/-SQLAlchemy-D71F00?logo=sqlalchemy&logoColor=white) |
+| **Database**      | ![MySQL](https://img.shields.io/badge/-MySQL-4479A1?logo=mysql&logoColor=white)                             |
+| **AI & NLP**      | ![Google Gemini](https://img.shields.io/badge/-Google_Gemini-8E75B2?logo=google&logoColor=white) `pyresparser` `spacy` |
+| **Communication** | ![Twilio](https://img.shields.io/badge/-Twilio-F22F46?logo=twilio&logoColor=white) (for WhatsApp)             |
 
-| Dashboard View | Candidates View |
-| :---: | :---: |
-| *(Your Dashboard Screenshot Here)* | *(Your Candidates Screenshot Here)* |
+---
 
-| Messages View | Candidate Profile Modal |
-| :---: | :---: |
-| *(Your Messages Screenshot Here)* | *(Your Profile Modal Screenshot Here)* |
+## ⚙️ Installation & Setup
 
-## ✨ Core Features
+You can set up the project in two ways:
+1.  **Docker (Recommended):** Easiest for running the app quickly.
+2.  **Manual Setup:** Best for development and debugging.
 
-*   **AI-Powered Resume Screening:** Utilizes Google Gemini to intelligently score resumes against job descriptions, automatically shortlisting or declining candidates.
-*   **Modern & Responsive UI:** A fast, user-friendly single-page application built with React for a seamless experience.
-*   **Interactive Dashboard:** At-a-glance view of key hiring metrics, active jobs, and candidate pipeline distribution with dynamic charts.
-*   **Full Candidate Lifecycle Management:** Track candidates from initial application through multiple interview stages, offers, and onboarding.
-*   **Bulk Actions:** Efficiently upload resumes in bulk, and manage multiple candidates or jobs at once.
-*   **Multi-Channel Communication:** Send targeted bulk messages to candidates via Email or WhatsApp using customizable templates.
-*   **Detailed Status History:** Maintains an auditable log of every status change for each candidate.
+### Prerequisites (For both methods)
+*   **Google Gemini API Key**: [Get it here](https://aistudio.google.com/app/apikey)
+*   **Twilio Account**: (Optional) For WhatsApp features.
+*   **SMTP Credentials**: (Optional) For sending emails (e.g., Gmail App Password).
 
-## 💻 Technology Stack
+---
 
-#### Backend
-*   **Framework:** Python 3, Flask
-*   **Database:** MySQL
-*   **ORM:** SQLAlchemy
-*   **AI/LLM:** Google Gemini
-*   **Messaging:** Twilio API for WhatsApp
-*   **Configuration:** YAML, python-dotenv
+### Option 1: 🐳 Docker Setup (Recommended)
 
-#### Frontend
-*   **Library:** React
-*   **Build Tool:** Vite
-*   **Language:** JavaScript (ES6+)
-*   **Charting:** Chart.js
-*   **Styling:** Plain CSS3 with Custom Properties
-
-## 🚀 Getting Started
-
-Follow these instructions to get the project up and running on your local machine for development and testing.
-
-### Prerequisites
-
-You will need the following software installed on your system:
-*   Python (3.8 or newer)
-*   Node.js (v16 or newer) and npm
-*   A running MySQL server
-
-### 1. Backend Setup
-
-First, let's set up and run the Python Flask server.
+**Prerequisite:** Install [Docker Desktop](https://www.docker.com/get-started).
 
 1.  **Clone the Repository:**
     ```bash
-    git clone <repository_url>
-    cd HR-HIRE-AGENT
+    git clone https://github.com/your-username/hr-hire-agent.git
+    cd hr-hire-agent
     ```
 
-2.  **Create and Activate a Python Virtual Environment:**
-    ```bash
-    python3 -m venv env
-    source env/bin/activate  # On Windows: env\Scripts\activate
-    ```
-
-3.  **Install Python Dependencies:**
-    ```bash
-    pip install -r requirements.txt
-    ```
-
-4.  **Configure Environment Variables:**
-    Create a file named `.env` in the project's root directory. Copy the contents of `.env.example` (if provided) or use the template below and fill in your actual credentials.
-
-    ```env
-    # Flask Settings
-    FLASK_APP=api/main.py
-    FLASK_ENV=development
-    APP_SECRET_KEY="a_strong_random_secret_key"
-
-    # Database URL (ensure your MySQL user, password, and DB name are correct)
-    DATABASE_URL="mysql+pymysql://root:your_password@localhost:3306/hr_agent_db"
-
-    # Google Gemini API Key
-    GEMINI_API_KEY="YOUR_GOOGLE_GEMINI_API_KEY"
-
-    # Twilio Credentials for WhatsApp
-    TWILIO_ACCOUNT_SID="YOUR_TWILIO_ACCOUNT_SID"
-    TWILIO_AUTH_TOKEN="YOUR_TWILIO_AUTH_TOKEN"
-    TWILIO_WHATSAPP_NUMBER="whatsapp:+14155238886" # Your Twilio number
-    ```
-
-5.  **Set Up the Database:**
-    *   Log in to your MySQL server.
-    *   Create the database you specified in `DATABASE_URL`.
-        ```sql
-        CREATE DATABASE hr_agent_db;
+2.  **Configure Environment:**
+    *   Copy `.env.example` to `.env`:
+        ```bash
+        cp .env.example .env
         ```
-    *   The Flask application will automatically create the necessary tables on its first run.
+    *   **Edit `.env`:** Fill in your API keys.
+    *   **IMPORTANT:** For Docker, ensure your `DATABASE_URL` uses the hostname `db`:
+        ```env
+        DATABASE_URL="mysql+pymysql://root:YourRootPassword@db:3306/ats"
+        ```
 
-### 2. Frontend Setup
-
-Next, let's set up the React development server in a **new terminal window**.
-
-1.  **Navigate to the Frontend Directory:**
+3.  **Run with Docker Compose:**
     ```bash
-    cd frontend-react
+    docker-compose up --build -d
     ```
+    *   This starts the Backend, Frontend, and MySQL database automatically.
 
-2.  **Install Node.js Dependencies:**
-    ```bash
-    npm install
-    ```
-
-## 🏃‍♂️ Running the Application
-
-To run the application, you need to have **two terminals** open simultaneously: one for the backend and one for the frontend.
-
-**➡️ In Terminal 1 (Backend):**
-Make sure you are in the project's root directory (`HR-HIRE-AGENT/`) and your Python virtual environment is active.
-
-```bash
-flask run
-```
-This will start the Flask API server, typically on `http://127.0.0.1:5000`.
-
-**➡️ In Terminal 2 (Frontend):**
-Make sure you are in the `frontend-react/` directory.
-
-```bash
-npm run dev
-```
-This will start the Vite development server, typically on `http://localhost:5173`.
-
-**You're all set! Open your web browser and navigate to the frontend URL (e.g., `http://localhost:5173`) to use the application.** The React app is configured to automatically proxy API requests to your running Flask backend.
+4.  **Access the App:** Open **`http://localhost`** in your browser.
 
 ---
 
-### Application Flow (Simplified)
+### Option 2: 💻 Manual Setup (Without Docker)
 
-1.  **HR Defines Job:** HR creates a `Job Description (JD)` in the app.
-2.  **Candidates Apply (Bulk Upload):** HR uploads multiple resume files for a specific job.
-3.  **Resume Processing & AI Scoring:**
-    *   For each resume, `Google Gemini (AI)` calculates an `ATS Score` against the JD.
-    *   This processing happens in parallel for speed.
-4.  **Shortlisting Decision:**
-    *   If a candidate's score is above a pre-set threshold, they are marked `ATS Shortlisted`.
-    *   Otherwise, they are marked `Resume declined`.
-5.  **Database Storage:** Shortlisted candidates and their details are saved to the MySQL database.
-6.  **Ongoing Workflow:**
-    *   HR uses the app to manage `Interviews`, `Offers`, and other stages.
-    *   Every status change is logged in the `Status History`.
-7.  **Communication:** HR can send bulk emails or WhatsApp messages to candidates at any stage.
+Use this method if you want to run the backend and frontend locally for development.
+
+#### Prerequisites
+*   **Python 3.11+**
+*   **Node.js 18+**
+*   **MySQL Server** running locally.
+
+#### 1. Database Setup
+1.  Log in to your local MySQL:
+    ```bash
+    mysql -u root -p
+    ```
+2.  Create the database:
+    ```sql
+    CREATE DATABASE ats;
+    ```
+
+#### 2. Backend Setup
+1.  Navigate to the root directory.
+2.  **Create a Virtual Environment:**
+    ```bash
+    python -m venv venv
+    # Windows:
+    .\venv\Scripts\activate
+    # Mac/Linux:
+    source venv/bin/activate
+    ```
+3.  **Install Dependencies:**
+    ```bash
+    pip install -r requirements.txt
+    ```
+4.  **Download Required NLP Models (Crucial Step):**
+    If you skip this, resume parsing will fail with 500 errors.
+    ```bash
+    python -m nltk.downloader stopwords
+    python -m spacy download en_core_web_sm
+    ```
+5.  **Configure `.env`:**
+    *   Copy `.env.example` to `.env`.
+    *   **IMPORTANT:** Change `DATABASE_URL` to point to `localhost` instead of `db`:
+        ```env
+        DATABASE_URL="mysql+pymysql://root:YourLocalConfiguredPassword@localhost:3306/ats"
+        ```
+6.  **Run the Backend:**
+    ```bash
+    # Make sure venv is active
+    python -m api.main
+    # OR
+    flask run --host=0.0.0.0 --port=5000
+    ```
+
+#### 3. Frontend Setup
+1.  Open a new terminal and navigate to the frontend folder:
+    ```bash
+    cd frontend-react
+    ```
+2.  **Install Dependencies:**
+    ```bash
+    npm install
+    ```
+3.  **Run the Frontend:**
+    ```bash
+    npm run dev
+    ```
+4.  **Access the App:** Open **`http://localhost:5173`** (or the port shown in your terminal).
+
+---
+
+## ❓ Troubleshooting & Common Mistakes
+
+Here are the most common issues you might face during setup:
+
+### 1. Database Connection Failed
+*   **Error:** `sqlalchemy.exc.OperationalError: (pymysql.err.OperationalError) ... Can't connect to MySQL server`
+*   **Cause:** Incorrect `DATABASE_URL` host.
+*   **Solution:**
+    *   **Docker:** Host MUST be `db` (e.g., `@db:3306/ats`).
+    *   **Manual:** Host MUST be `localhost` (e.g., `@localhost:3306/ats`).
+    *   Ensure your MySQL server is actually running.
+
+### 2. Resume Parsing Fails (500 Internal Server Error)
+*   **Error:** Errors related to `spacy` or `nltk` data missing.
+*   **Cause:** You skipped the model download step in Manual Setup.
+*   **Solution:** Run the following commands in your active virtual environment:
+    ```bash
+    python -m nltk.downloader stopwords
+    python -m spacy download en_core_web_sm
+    ```
+
+### 3. API Keys Issues
+*   **Error:** `GenerativeAIError` or Twilio authentication errors.
+*   **Solution:** Double-check your `.env` file. Ensure there are no extra spaces or quotes around the keys if not needed. Restart the backend after changing `.env`.
+
+### 4. CORS Errors
+*   **Error:** Frontend cannot fetch data from Backend (`Network Error`).
+*   **Solution:** Ensure the Backend is running on port `5000`. If you changed the port, update the API requests in the frontend code.
+
+---

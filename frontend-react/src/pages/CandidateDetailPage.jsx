@@ -65,7 +65,32 @@ export function CandidateDetailPage({ candidateId, setActivePage, apiFetch, show
                     <div className="flex flex-col items-center justify-center"><h4 className="text-sm font-semibold text-slate-500 mb-2">ATS Score</h4><ScoreCircle score={Math.round(candidate.ats_score || 0)} /></div>
                 </div>
                 <div><h4 className="text-base font-bold text-slate-800 mb-2">AI Shortlisting Summary</h4><p className="text-sm text-slate-600 leading-relaxed">{candidate.ai_analysis?.summary_reason || 'No AI summary available.'}</p></div>
-                <div><h4 className="text-base font-bold text-slate-800 mb-3">Matched Skills</h4><div className="flex flex-wrap gap-2">{candidate.ai_analysis?.matched_skills?.length > 0 ? candidate.ai_analysis.matched_skills.map(skill => <span key={skill} className="px-3 py-1 bg-primary-light text-primary-dark text-xs font-semibold rounded-full">{skill}</span>) : <p className="text-sm text-slate-500">No specific skills identified.</p>}</div></div>
+                <div>
+                    <h4 className="text-base font-bold text-slate-800 mb-3">Matched Skills</h4>
+                    <div className="flex flex-wrap gap-2">
+                        {candidate.ai_analysis?.matched_skills?.length > 0 ? 
+                            candidate.ai_analysis.matched_skills.map(skill => <span key={skill} className="px-3 py-1 bg-primary-light text-primary-dark text-xs font-semibold rounded-full">{skill}</span>) : 
+                            <p className="text-sm text-slate-500">No specific skills identified.</p>
+                        }
+                    </div>
+                </div>
+
+                {/* ✅ THIS IS THE NEW CERTIFICATIONS SECTION */}
+                <div>
+                    <h4 className="text-base font-bold text-slate-800 mb-3">Certifications</h4>
+                    <div className="flex flex-wrap gap-2">
+                        {candidate.ai_analysis?.certifications?.length > 0 ? 
+                            candidate.ai_analysis.certifications.map(cert => (
+                                <span key={cert} className="px-3 py-1 bg-green-100 text-green-700 text-xs font-semibold rounded-full flex items-center gap-1.5">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                                    {cert}
+                                </span>
+                            )) : 
+                            <p className="text-sm text-slate-500">No certifications found.</p>
+                        }
+                    </div>
+                </div>
+
             </div>);
         }
     };
@@ -73,7 +98,6 @@ export function CandidateDetailPage({ candidateId, setActivePage, apiFetch, show
     return (
         <div className="space-y-6">
             <div>
-                {/* === THIS IS THE FIX: IMPROVED STYLING FOR THE BACK BUTTON === */}
                 <a 
                     href="#" 
                     className="inline-flex items-center gap-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 hover:text-slate-800 px-3 py-1.5 rounded-md transition-colors mb-2" 

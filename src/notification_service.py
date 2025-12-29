@@ -3,7 +3,7 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from config.config_loader import config
 from logger.logger import logger
-from src.email_templates import EMAIL_TEMPLATES # NEW import
+from src.email_templates import EMAIL_TEMPLATES # <--- THIS IS THE ONLY CHANGE
 
 class NotificationService:
     def __init__(self):

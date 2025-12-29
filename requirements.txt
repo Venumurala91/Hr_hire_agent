@@ -21,6 +21,7 @@
  # For this example, we'll assume text content is provided, or a simpler parser.
 pyresparser
 spacy
+gunicorn
  
  # Logging
  # No extra library needed, Python's built-in 'logging' is sufficient.
