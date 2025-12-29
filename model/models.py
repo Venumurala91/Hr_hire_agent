@@ -23,7 +23,7 @@ class JobDescription(Base):
     min_experience_years = Column(String(50), default='0')
     created_at = Column(DateTime, default=func.now())
     updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
-
+     # relationship (one-to-many)
     candidates = relationship("Candidate", back_populates="job_description")
 
     def __repr__(self):
