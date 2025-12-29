@@ -142,6 +142,43 @@ Use this method if you want to run the backend and frontend locally for developm
 
 ---
 
+## 🔐 Authentication & User Setup
+
+Before you can use the application, you need to create an initial admin user.
+
+### 1. Create the First User (Admin)
+The application comes with a built-in script to set up your first user account securely.
+
+1.  Open your terminal in the project root.
+2.  Ensure your virtual environment is active (for Manual Setup) or attach to the backend container (for Docker).
+    *   **Manual:** `python create_first_user.py`
+    *   **Docker:** `docker-compose exec backend python create_first_user.py`
+3.  Follow the prompts to enter:
+    *   First Name
+    *   Last Name
+    *   Email (This will be your **Login ID**)
+    *   Password
+
+### 2. Logging In
+1.  Go to the login page on the frontend (e.g., `http://localhost`).
+2.  Enter the **Email** and **Password** you just created.
+3.  Click **Login** to access the dashboard.
+
+### 3. Creating More Users
+Once logged in, you can create additional users for your team via the API:
+*   **Endpoint:** `POST /api/users`
+*   **Payload:**
+    ```json
+    {
+      "email": "new.hr@example.com",
+      "password": "securepassword123",
+      "first_name": "Jane",
+      "last_name": "Doe"
+    }
+    ```
+
+---
+
 ## ❓ Troubleshooting & Common Mistakes
 
 Here are the most common issues you might face during setup:
